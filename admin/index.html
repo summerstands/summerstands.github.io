@@ -30,7 +30,7 @@
         
         .btn { background-color: var(--primary); border: none; padding: 8px 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
         .btn-orange { background-color: var(--secondary); color: white; }
-        .sync-box { background: #e0f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .status-banner { background: #e0f7fa; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; }
@@ -55,16 +55,13 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>🔐 Summer Stands Administration</h1>
-            <button class="btn btn-orange" onclick="openOrderModal()">➕ Create New Order</button>
+            <div>
+                <button class="btn" onclick="fetchLiveData()" style="background:#4caf50; color:white; margin-right:10px;">🔄 Refresh Live Orders</button>
+                <button class="btn btn-orange" onclick="openOrderModal()">➕ Create New Order</button>
+            </div>
         </div>
         
-        <div class="sync-box">
-            <h3>Sync Data with Customer Site</h3>
-            <p>Paste the text code copied from the customer screen here to update orders:</p>
-            <textarea id="admin-import" style="width:100%; height:50px;"></textarea>
-            <button class="btn" onclick="importFromCustomer()">Load Orders & Inventory</button>
-            <button class="btn" onclick="exportToCustomer()" style="background:#ff9800; color:white;">Copy Admin Changes to Paste in Menu</button>
-        </div>
+        <div class="status-banner" id="sync-status">📡 Fetching live cloud data...</div>
 
         <div class="card">
             <h3>Earnings & Splitting</h3>
@@ -147,21 +144,39 @@
     </div>
 
     <script>
+        const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/summer_stands_data";
+
         let standData = {
-            inventory: {
-                "Lemonade": { price: 1.50, stock: 20 },
-                "Oreo Drink": { price: 2.50, stock: 10 },
-                "Rose Milk": { price: 2.00, stock: 12 },
-                "Chips": { price: 1.00, stock: 15 },
-                "Zbar": { price: 1.75, stock: 8 }
-            },
+            inventory: {},
             orders: [],
             totalRevenue: 0,
             totalFees: 0
         };
 
-        if (localStorage.getItem('summerStandsData')) {
-            standData = JSON.parse(localStorage.getItem('summerStandsData'));
+        async function fetchLiveData() {
+            document.getElementById('sync-status').innerText = "🔄 Syncing with live database...";
+            try {
+                const response = await fetch(DB_URL);
+                if (response.ok) {
+                    standData = await response.json();
+                    document.getElementById('sync-status').innerText = "🟢 Automatically Synced to Cloud Storage";
+                    renderAdminDashboard();
+                }
+            } catch (e) {
+                document.getElementById('sync-status').innerText = "❌ Database Connection Failed";
+            }
+        }
+
+        async function saveLiveData() {
+            try {
+                await fetch(DB_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(standData)
+                });
+                fetchLiveData();
+            } catch(e) {
+                alert("Could not update database.");
+            }
         }
 
         function renderAdminDashboard() {
@@ -222,7 +237,7 @@
             document.getElementById('orderModal').style.display = 'none';
         }
 
-        function submitNewOrder(e) {
+        async function submitNewOrder(e) {
             e.preventDefault();
             const name = document.getElementById('modal-name').value;
             let orderItems = [];
@@ -242,39 +257,34 @@
                 return;
             }
 
-            // Stand orders have no delivery fee added
             standData.totalRevenue += itemTotal;
-
             standData.orders.push({
                 id: standData.orders.length + 1,
                 name: name,
-                address: "Stand Table", // Set location automatically
+                address: "Stand Table",
                 items: orderItems.join(', '),
                 total: itemTotal,
                 status: 'Completed Paid ✅'
             });
 
-            localStorage.setItem('summerStandsData', JSON.stringify(standData));
             closeOrderModal();
-            renderAdminDashboard();
+            await saveLiveData();
         }
 
-        function changeStock(item, amount) {
+        async function changeStock(item, amount) {
             standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock + amount);
-            localStorage.setItem('summerStandsData', JSON.stringify(standData));
-            renderAdminDashboard();
+            await saveLiveData();
         }
 
-        function toggleOrderStatus(orderId) {
+        async function toggleOrderStatus(orderId) {
             let order = standData.orders.find(o => o.id === orderId);
             if (order) {
                 order.status = order.status.includes('Pending') ? "Completed ✅" : "Pending Delivery 🚚";
-                localStorage.setItem('summerStandsData', JSON.stringify(standData));
-                renderAdminDashboard();
+                await saveLiveData();
             }
         }
 
-        function handleManualEntry(e) {
+        async function handleManualEntry(e) {
             e.preventDefault();
             const amount = parseFloat(document.getElementById('manual-amount').value);
             const notes = document.getElementById('manual-notes').value;
@@ -289,10 +299,9 @@
                 status: "Completed Paid ✅"
             });
 
-            localStorage.setItem('summerStandsData', JSON.stringify(standData));
             document.getElementById('manual-amount').value = '';
             document.getElementById('manual-notes').value = '';
-            renderAdminDashboard();
+            await saveLiveData();
         }
 
         function calculateSplits() {
@@ -301,26 +310,7 @@
             document.getElementById('split-amount').innerText = splitAmount.toFixed(2);
         }
 
-        function importFromCustomer() {
-            try {
-                const raw = document.getElementById('admin-import').value;
-                if(raw) {
-                    standData = JSON.parse(raw);
-                    localStorage.setItem('summerStandsData', JSON.stringify(standData));
-                    renderAdminDashboard();
-                    alert('Dashboard updated successfully!');
-                }
-            } catch(e) {
-                alert('Invalid data code.');
-            }
-        }
-
-        function exportToCustomer() {
-            navigator.clipboard.writeText(JSON.stringify(standData));
-            alert('Admin data code copied!');
-        }
-
-        renderAdminDashboard();
+        fetchLiveData();
     </script>
 </body>
 </html>
