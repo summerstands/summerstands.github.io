@@ -84,7 +84,7 @@
     </header>
 
     <div class="container">
-        <div class="status-msg" id="loading-status">📡 Connecting to live database...</div>
+        <div class="status-msg" id="loading-status">📡 Connecting to Firebase database...</div>
         <h2>Our Summer Menu</h2>
         <div class="menu-grid" id="customer-menu"></div>
 
@@ -111,8 +111,8 @@
     </div>
 
     <script>
-        // Updated fresh cloud bucket path
-        const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/bridgeview_stand_v2";
+        // High-speed Google Firebase Endpoint
+        const DB_URL = "https://summerstands-default-rtdb.firebaseio.com/standData.json";
 
         let standData = {
             inventory: {
@@ -133,36 +133,32 @@
             try {
                 const response = await fetch(DB_URL);
                 if (response.ok) {
-                    const text = await response.text();
-                    if (text && text.trim().length > 0) {
-                        standData = JSON.parse(text);
+                    const data = await response.json();
+                    if (data && data.inventory) {
+                        standData = data;
+                    } else {
+                        // Initialize database if empty
+                        await saveLiveData();
                     }
-                    document.getElementById('loading-status').innerText = "🟢 Connected Live to Stand Inventory";
+                    document.getElementById('loading-status').innerText = "🟢 Connected Live to Firebase Stand Database";
                     document.getElementById('loading-status').style.color = "#4caf50";
-                } else {
-                    await saveLiveData();
                 }
             } catch (e) {
                 document.getElementById('loading-status').innerText = "⚠️ Running in offline backup mode";
-                console.error("Fetch error:", e);
+                console.error(e);
             }
             renderCustomerMenu();
         }
 
         async function saveLiveData() {
             try {
-                const response = await fetch(DB_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                await fetch(DB_URL, {
+                    method: 'PUT', // Overwrites or updates the block perfectly
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(standData)
                 });
-                if (!response.ok) {
-                    throw new Error(`Server responded with status ${response.status}`);
-                }
             } catch(e) {
-                console.error("Database save error:", e);
+                console.error("Firebase write error:", e);
             }
         }
 
@@ -231,8 +227,8 @@
             try {
                 const res = await fetch(DB_URL);
                 if(res.ok) {
-                    const text = await res.text();
-                    if (text) standData = JSON.parse(text);
+                    const data = await res.json();
+                    if (data) standData = data;
                 }
             } catch(err){}
 
@@ -253,6 +249,7 @@
             standData.totalRevenue += finalBill;
             standData.totalFees += 0.20;
 
+            if (!standData.orders) standData.orders = [];
             standData.orders.push({
                 id: standData.orders.length + 1,
                 name: name,
@@ -264,13 +261,13 @@
 
             try {
                 await saveLiveData();
-                alert('🎉 Order placed successfully! Sent straight to the database.');
+                alert('🎉 Order placed successfully! Sent straight to Firebase.');
                 cart = {};
                 document.getElementById('checkout-form').reset();
                 updateCartUI();
                 renderCustomerMenu();
             } catch (err) {
-                alert('⚠️ Order processed, but database failed to save. Please notify the stand owners!');
+                alert('⚠️ Database error. Please notify the stand owners!');
             }
             
             document.getElementById('submit-order-btn').disabled = false;
