@@ -68,23 +68,16 @@
             margin-top: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .status-msg {
-            text-align: center;
-            font-weight: bold;
-            color: #ff6600;
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
 
     <header>
         <h1>Summer Stands</h1>
-        <p>Refreshing Bridgeview, One Cup at a Time! (Lazy-Friendly Delivery)</p>
+        <p>Refreshing Bridgeview, One Cup at a Time! (Linked to Notion)</p>
     </header>
 
     <div class="container">
-        <div class="status-msg" id="loading-status">📡 Connecting to Firebase database...</div>
         <h2>Our Summer Menu</h2>
         <div class="menu-grid" id="customer-menu"></div>
 
@@ -111,62 +104,29 @@
     </div>
 
     <script>
-        // High-speed Google Firebase Endpoint
-        const DB_URL = "https://summerstands-default-rtdb.firebaseio.com/standData.json";
+        // Your Notion Credentials
+        const NOTION_TOKEN = "ntn_b71251085285F0zyxLyBuRjvgzBleNjZmfpa40ZxggK9c4";
+        const DATABASE_ID = "3a11a8b0873080c8b274fb20867d2b85";
+        
+        // Free open reverse proxy to handle Notion CORS requirements
+        const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
 
-        let standData = {
-            inventory: {
-                "Lemonade": { price: 1.50, stock: 20 },
-                "Oreo Drink": { price: 2.50, stock: 10 },
-                "Rose Milk": { price: 2.00, stock: 12 },
-                "Chips": { price: 1.00, stock: 15 },
-                "Zbar": { price: 1.75, stock: 8 }
-            },
-            orders: [],
-            totalRevenue: 0,
-            totalFees: 0
+        // Fixed Local Inventory since we handle orders on Notion now
+        let inventory = {
+            "Lemonade": { price: 1.50, stock: 20 },
+            "Oreo Drink": { price: 2.50, stock: 10 },
+            "Rose Milk": { price: 2.00, stock: 12 },
+            "Chips": { price: 1.00, stock: 15 },
+            "Zbar": { price: 1.75, stock: 8 }
         };
 
         let cart = {};
 
-        async function fetchLiveData() {
-            try {
-                const response = await fetch(DB_URL);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.inventory) {
-                        standData = data;
-                    } else {
-                        // Initialize database if empty
-                        await saveLiveData();
-                    }
-                    document.getElementById('loading-status').innerText = "🟢 Connected Live to Firebase Stand Database";
-                    document.getElementById('loading-status').style.color = "#4caf50";
-                }
-            } catch (e) {
-                document.getElementById('loading-status').innerText = "⚠️ Running in offline backup mode";
-                console.error(e);
-            }
-            renderCustomerMenu();
-        }
-
-        async function saveLiveData() {
-            try {
-                await fetch(DB_URL, {
-                    method: 'PUT', // Overwrites or updates the block perfectly
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(standData)
-                });
-            } catch(e) {
-                console.error("Firebase write error:", e);
-            }
-        }
-
         function renderCustomerMenu() {
             const container = document.getElementById('customer-menu');
             container.innerHTML = '';
-            for (let item in standData.inventory) {
-                let details = standData.inventory[item];
+            for (let item in inventory) {
+                let details = inventory[item];
                 container.innerHTML += `
                     <div class="menu-item">
                         <h3>${item}</h3>
@@ -182,11 +142,11 @@
 
         function addToCart(item) {
             if (!cart[item]) cart[item] = 0;
-            if (cart[item] < standData.inventory[item].stock) {
+            if (cart[item] < inventory[item].stock) {
                 cart[item]++;
                 updateCartUI();
             } else {
-                alert(`Sorry, we only have ${standData.inventory[item].stock} left!`);
+                alert(`Sorry, we only have ${inventory[item].stock} left!`);
             }
         }
 
@@ -202,7 +162,7 @@
             for (let item in cart) {
                 if (cart[item] > 0) {
                     hasItems = true;
-                    let cost = cart[item] * standData.inventory[item].price;
+                    let cost = cart[item] * inventory[item].price;
                     subtotal += cost;
                     html += `<li>${item} x ${cart[item]} - $${cost.toFixed(2)}</li>`;
                 }
@@ -221,16 +181,9 @@
 
         async function placeOrder(e) {
             e.preventDefault();
-            document.getElementById('submit-order-btn').disabled = true;
-            document.getElementById('submit-order-btn').innerText = "Sending Order...";
-
-            try {
-                const res = await fetch(DB_URL);
-                if(res.ok) {
-                    const data = await res.json();
-                    if (data) standData = data;
-                }
-            } catch(err){}
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = true;
+            btn.innerText = "Sending Order to Notion...";
 
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
@@ -239,42 +192,56 @@
 
             for (let item in cart) {
                 if (cart[item] > 0) {
-                    standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock - cart[item]);
                     orderItems.push(`${item} (${cart[item]})`);
-                    itemTotal += cart[item] * standData.inventory[item].price;
+                    itemTotal += cart[item] * inventory[item].price;
                 }
             }
 
             let finalBill = itemTotal + 0.20;
-            standData.totalRevenue += finalBill;
-            standData.totalFees += 0.20;
 
-            if (!standData.orders) standData.orders = [];
-            standData.orders.push({
-                id: standData.orders.length + 1,
-                name: name,
-                address: address,
-                items: orderItems.join(', '),
-                total: finalBill,
-                status: 'Pending Delivery 🚚'
-            });
+            // Prepare Notion data object matching your columns
+            const notionData = {
+                parent: { database_id: DATABASE_ID },
+                properties: {
+                    "Name": { title: [{ text: { content: name } }] },
+                    "Address": { rich_text: [{ text: { content: address } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Total Due": { number: finalBill },
+                    "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
+                }
+            };
 
             try {
-                await saveLiveData();
-                alert('🎉 Order placed successfully! Sent straight to Firebase.');
-                cart = {};
-                document.getElementById('checkout-form').reset();
-                updateCartUI();
-                renderCustomerMenu();
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(notionData)
+                });
+
+                if (response.ok) {
+                    alert('🎉 Order sent successfully! Check your Notion dashboard now!');
+                    cart = {};
+                    document.getElementById('checkout-form').reset();
+                    updateCartUI();
+                } else {
+                    const errDetails = await response.text();
+                    console.error(errDetails);
+                    alert('⚠️ Notion rejected the format. Make sure your column names match exactly!');
+                }
             } catch (err) {
-                alert('⚠️ Database error. Please notify the stand owners!');
+                console.error(err);
+                alert('⚠️ Connection error trying to reach Notion.');
             }
             
-            document.getElementById('submit-order-btn').disabled = false;
-            document.getElementById('submit-order-btn').innerText = "Send Order to Stand!";
+            btn.disabled = false;
+            btn.innerText = "Send Order to Stand!";
         }
 
-        fetchLiveData();
+        renderCustomerMenu();
     </script>
 </body>
 </html>
