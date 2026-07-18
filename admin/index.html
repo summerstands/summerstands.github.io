@@ -1,1 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summer Stands - Dashboard</title>
+    <style>
+        :root {
+            --primary: #ffcc00;
+            --secondary: #ff6600;
+            --dark: #333;
+            --light: #f9f9f9;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 2rem;
+            background-color: #fafafa;
+            color: var(--dark);
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } }
+        
+        .card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        
+        .btn { background-color: var(--primary); border: none; padding: 8px 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        .sync-box { background: #e0f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
 
+    <div class="container">
+        <h1>🔐 Summer Stands Administration</h1>
+        
+        <div class="sync-box">
+            <h3>Sync Data with Customer Site</h3>
+            <p>Paste the text code copied from the customer screen here to update orders:</p>
+            <textarea id="admin-import" style="width:100%; height:50px;"></textarea>
+            <button class="btn" onclick="importFromCustomer()">Load Orders & Inventory</button>
+            <button class="btn" onclick="exportToCustomer()" style="background:#ff9800; color:white;">Copy Admin Changes to Paste in Menu</button>
+        </div>
+
+        <div class="card">
+            <h3>Earnings & Splitting</h3>
+            <div class="admin-grid">
+                <div>
+                    <p><strong>Total Revenue:</strong> $<span id="total-revenue">0.00</span></p>
+                    <p><strong>Delivery Fees Collected:</strong> $<span id="total-fees">0.00</span></p>
+                </div>
+                <div>
+                    <label>Split Profit Between (Number of People):</label>
+                    <input type="number" id="split-count" value="2" min="1" oninput="calculateSplits()" style="width: 60px; padding: 5px;">
+                    <p><strong>Each Person Gets:</strong> $<span id="split-amount">0.00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="card">
+                <h3>Inventory Tracker</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>In Stock</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-inventory"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>Manual Cash Entry</h3>
+                <form onsubmit="handleManualEntry(event)">
+                    <label>Amount Paid ($):</label><br>
+                    <input type="number" step="0.01" id="manual-amount" required style="width:90%; padding:5px; margin: 5px 0;"><br>
+                    <label>Notes / Items Sold:</label><br>
+                    <input type="text" id="manual-notes" placeholder="e.g., 2 Lemonades walk up" required style="width:90%; padding:5px; margin: 5px 0;"><br>
+                    <button type="submit" class="btn" style="margin-top:5px;">Log Cash</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Order Log</h3>
+            <table id="orders-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Address</th>
+                        <th>Items</th>
+                        <th>Total Due</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-orders"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let standData = {
+            inventory: {
+                "Lemonade": { price: 1.50, stock: 20 },
+                "Oreo Drink": { price: 2.50, stock: 10 },
+                "Rose Milk": { price: 2.00, stock: 12 },
+                "Chips": { price: 1.00, stock: 15 },
+                "Zbar": { price: 1.75, stock: 8 }
+            },
+            orders: [],
+            totalRevenue: 0,
+            totalFees: 0
+        };
+
+        if (localStorage.getItem('summerStandsData')) {
+            standData = JSON.parse(localStorage.getItem('summerStandsData'));
+        }
+
+        function renderAdminDashboard() {
+            const invBody = document.getElementById('admin-inventory');
+            invBody.innerHTML = '';
+            for (let item in standData.inventory) {
+                invBody.innerHTML += `
+                    <tr>
+                        <td><strong>${item}</strong></td>
+                        <td><span>${standData.inventory[item].stock}</span></td>
+                        <td>
+                            <button onclick="changeStock('${item}', 5)">+5</button>
+                            <button onclick="changeStock('${item}', -1)">-1</button>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            const orderBody = document.getElementById('admin-orders');
+            orderBody.innerHTML = '';
+            standData.orders.forEach(o => {
+                orderBody.innerHTML += `
+                    <tr>
+                        <td>#00${o.id}</td>
+                        <td>${o.name}</td>
+                        <td>${o.address}</td>
+                        <td>${o.items}</td>
+                        <td>$${o.total.toFixed(2)}</td>
+                        <td>
+                            <button onclick="completeOrder(${o.id})" class="btn" style="padding:3px 8px; font-size:0.8rem;">
+                                ${o.status}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('total-revenue').innerText = standData.totalRevenue.toFixed(2);
+            document.getElementById('total-fees').innerText = standData.totalFees.toFixed(2);
+            calculateSplits();
+        }
+
+        function changeStock(item, amount) {
+            standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock + amount);
+            localStorage.setItem('summerStandsData', JSON.stringify(standData));
+            renderAdminDashboard();
+        }
+
+        function completeOrder(orderId) {
+            let order = standData.orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = "Completed ✅";
+                localStorage.setItem('summerStandsData', JSON.stringify(standData));
+                renderAdminDashboard();
+            }
+        }
+
+        function handleManualEntry(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('manual-amount').value);
+            const notes = document.getElementById('manual-notes').value;
+
+            standData.totalRevenue += amount;
+            standData.orders.push({
+                id: standData.orders.length + 1,
+                name: "Walk-up / Manual Cash",
+                address: "Stand Location",
+                items: notes,
+                total: amount,
+                status: "Completed Paid ✅"
+            });
+
+            localStorage.setItem('summerStandsData', JSON.stringify(standData));
+            document.getElementById('manual-amount').value = '';
+            document.getElementById('manual-notes').value = '';
+            renderAdminDashboard();
+        }
+
+        function calculateSplits() {
+            const count = parseInt(document.getElementById('split-count').value) || 1;
+            const splitAmount = standData.totalRevenue / count;
+            document.getElementById('split-amount').innerText = splitAmount.toFixed(2);
+        }
+
+        function importFromCustomer() {
+            try {
+                const raw = document.getElementById('admin-import').value;
+                if(raw) {
+                    standData = JSON.parse(raw);
+                    localStorage.setItem('summerStandsData', JSON.stringify(standData));
+                    renderAdminDashboard();
+                    alert('Dashboard updated successfully!');
+                }
+            } catch(e) {
+                alert('Invalid data code.');
+            }
+        }
+
+        function exportToCustomer() {
+            navigator.clipboard.writeText(JSON.stringify(standData));
+            alert('Admin data code copied! Paste it in the customer portal sync box to update availability values.');
+        }
+
+        renderAdminDashboard();
+    </script>
+</body>
+</html>
