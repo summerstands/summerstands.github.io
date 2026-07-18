@@ -96,17 +96,15 @@
     <div id="delivery-list"></div>
 
     <script>
-        const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/bridgeview_stand_v2";
+        const DB_URL = "https://summerstands-default-rtdb.firebaseio.com/standData.json";
         let standData = { orders: [] };
 
         async function loadDeliveries() {
             try {
                 const response = await fetch(DB_URL);
                 if (response.ok) {
-                    const text = await response.text();
-                    if (text && text.trim().length > 0) {
-                        standData = JSON.parse(text);
-                    }
+                    const data = await response.json();
+                    if (data) standData = data;
                 }
             } catch (e) {
                 console.error("Failed to sync deliveries");
@@ -145,10 +143,8 @@
                 order.status = order.status.includes('Pending') ? "Completed ✅" : "Pending Delivery 🚚";
                 try {
                     await fetch(DB_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(standData)
                     });
                     loadDeliveries();
