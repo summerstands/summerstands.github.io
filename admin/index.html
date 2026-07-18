@@ -310,7 +310,12 @@
             document.getElementById('split-amount').innerText = splitAmount.toFixed(2);
         }
 
+        fetchLiveData(// Automatically check the database every 4 seconds
         fetchLiveData();
+        setInterval(fetchLiveData, 4000);
+    </script>
+</body>
+</html>);
     </script>
 </body>
 </html>
