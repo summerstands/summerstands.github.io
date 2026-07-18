@@ -16,6 +16,7 @@
             margin: 2rem;
             background-color: #fafafa;
             color: var(--dark);
+            display: none; /* Hidden until password is correct */
         }
         .container { max-width: 1000px; margin: 0 auto; }
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -28,13 +29,34 @@
         th { background-color: #f2f2f2; }
         
         .btn { background-color: var(--primary); border: none; padding: 8px 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        .btn-orange { background-color: var(--secondary); color: white; }
         .sync-box { background: #e0f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        .input-group { margin-bottom: 10px; }
+        .input-group label { font-weight: bold; }
+        .input-group input { width: 95%; padding: 6px; margin-top: 4px; }
     </style>
 </head>
 <body>
 
+    <script>
+        // Password Protection Guard
+        const pass = prompt("Enter Admin Password:");
+        if (pass === "@summer2") {
+            document.body.style.display = "block";
+        } else {
+            alert("Wrong password! Access denied.");
+            window.location.href = "https://summerstands.github.io/";
+        }
+    </script>
+
     <div class="container">
-        <h1>🔐 Summer Stands Administration</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>🔐 Summer Stands Administration</h1>
+            <button class="btn btn-orange" onclick="openOrderModal()">➕ Create New Order</button>
+        </div>
         
         <div class="sync-box">
             <h3>Sync Data with Customer Site</h3>
@@ -75,12 +97,12 @@
             </div>
 
             <div class="card">
-                <h3>Manual Cash Entry</h3>
+                <h3>Manual Cash Entry (Quick Logs)</h3>
                 <form onsubmit="handleManualEntry(event)">
                     <label>Amount Paid ($):</label><br>
                     <input type="number" step="0.01" id="manual-amount" required style="width:90%; padding:5px; margin: 5px 0;"><br>
-                    <label>Notes / Items Sold:</label><br>
-                    <input type="text" id="manual-notes" placeholder="e.g., 2 Lemonades walk up" required style="width:90%; padding:5px; margin: 5px 0;"><br>
+                    <label>Notes:</label><br>
+                    <input type="text" id="manual-notes" placeholder="e.g., Cash Tip" required style="width:90%; padding:5px; margin: 5px 0;"><br>
                     <button type="submit" class="btn" style="margin-top:5px;">Log Cash</button>
                 </form>
             </div>
@@ -93,7 +115,7 @@
                     <tr>
                         <th>Order ID</th>
                         <th>Customer</th>
-                        <th>Address</th>
+                        <th>Location</th>
                         <th>Items</th>
                         <th>Total Due</th>
                         <th>Status</th>
@@ -101,6 +123,26 @@
                 </thead>
                 <tbody id="admin-orders"></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Stand Order</h2>
+            <form onsubmit="submitNewOrder(event)">
+                <div class="input-group">
+                    <label>Customer Name:</label>
+                    <input type="text" id="modal-name" required placeholder="Walk-up Customer">
+                </div>
+                
+                <h3>Quantities:</h3>
+                <div id="modal-items-list"></div>
+                
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="closeOrderModal()" style="background:#ccc;">Cancel</button>
+                    <button type="submit" class="btn btn-orange">Save & Update Stock</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -149,7 +191,7 @@
                         <td>${o.items}</td>
                         <td>$${o.total.toFixed(2)}</td>
                         <td>
-                            <button onclick="completeOrder(${o.id})" class="btn" style="padding:3px 8px; font-size:0.8rem;">
+                            <button onclick="toggleOrderStatus(${o.id})" class="btn" style="padding:3px 8px; font-size:0.8rem;">
                                 ${o.status}
                             </button>
                         </td>
@@ -162,16 +204,71 @@
             calculateSplits();
         }
 
+        function openOrderModal() {
+            document.getElementById('orderModal').style.display = 'flex';
+            const listDiv = document.getElementById('modal-items-list');
+            listDiv.innerHTML = '';
+            for (let item in standData.inventory) {
+                listDiv.innerHTML += `
+                    <div class="input-group" style="display:flex; justify-content:space-between; align-items:center;">
+                        <label>${item} ($${standData.inventory[item].price.toFixed(2)}):</label>
+                        <input type="number" id="modal-qty-${item}" min="0" value="0" style="width:60px; text-align:center;">
+                    </div>
+                `;
+            }
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        function submitNewOrder(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-name').value;
+            let orderItems = [];
+            let itemTotal = 0;
+
+            for (let item in standData.inventory) {
+                let qty = parseInt(document.getElementById(`modal-qty-${item}`).value) || 0;
+                if (qty > 0) {
+                    standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock - qty);
+                    orderItems.push(`${item} (${qty})`);
+                    itemTotal += qty * standData.inventory[item].price;
+                }
+            }
+
+            if (orderItems.length === 0) {
+                alert("Please add at least 1 item.");
+                return;
+            }
+
+            // Stand orders have no delivery fee added
+            standData.totalRevenue += itemTotal;
+
+            standData.orders.push({
+                id: standData.orders.length + 1,
+                name: name,
+                address: "Stand Table", // Set location automatically
+                items: orderItems.join(', '),
+                total: itemTotal,
+                status: 'Completed Paid ✅'
+            });
+
+            localStorage.setItem('summerStandsData', JSON.stringify(standData));
+            closeOrderModal();
+            renderAdminDashboard();
+        }
+
         function changeStock(item, amount) {
             standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock + amount);
             localStorage.setItem('summerStandsData', JSON.stringify(standData));
             renderAdminDashboard();
         }
 
-        function completeOrder(orderId) {
+        function toggleOrderStatus(orderId) {
             let order = standData.orders.find(o => o.id === orderId);
             if (order) {
-                order.status = "Completed ✅";
+                order.status = order.status.includes('Pending') ? "Completed ✅" : "Pending Delivery 🚚";
                 localStorage.setItem('summerStandsData', JSON.stringify(standData));
                 renderAdminDashboard();
             }
@@ -185,8 +282,8 @@
             standData.totalRevenue += amount;
             standData.orders.push({
                 id: standData.orders.length + 1,
-                name: "Walk-up / Manual Cash",
-                address: "Stand Location",
+                name: "Manual Entry",
+                address: "Stand Table",
                 items: notes,
                 total: amount,
                 status: "Completed Paid ✅"
@@ -220,7 +317,7 @@
 
         function exportToCustomer() {
             navigator.clipboard.writeText(JSON.stringify(standData));
-            alert('Admin data code copied! Paste it in the customer portal sync box to update availability values.');
+            alert('Admin data code copied!');
         }
 
         renderAdminDashboard();
