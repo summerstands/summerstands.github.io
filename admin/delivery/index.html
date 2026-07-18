@@ -62,13 +62,14 @@
         .refresh-btn {
             display: block;
             width: 100%;
-            background: #333;
+            background: #4caf50;
             color: white;
             border: none;
             padding: 12px;
             font-weight: bold;
             border-radius: 5px;
             margin-bottom: 15px;
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -90,16 +91,22 @@
         <p>Summer Stands Run Crew</p>
     </div>
 
-    <button class="refresh-btn" onclick="loadDeliveries()">🔄 Refresh Delivery Run List</button>
+    <button class="refresh-btn" onclick="loadDeliveries()">🔄 Check for New Orders</button>
 
     <div id="delivery-list"></div>
 
     <script>
+        const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/summer_stands_data";
         let standData = { orders: [] };
 
-        function loadDeliveries() {
-            if (localStorage.getItem('summerStandsData')) {
-                standData = JSON.parse(localStorage.getItem('summerStandsData'));
+        async function loadDeliveries() {
+            try {
+                const response = await fetch(DB_URL);
+                if (response.ok) {
+                    standData = await response.json();
+                }
+            } catch (e) {
+                console.error("Failed to sync deliveries");
             }
 
             const container = document.getElementById('delivery-list');
@@ -109,11 +116,12 @@
             const deliveries = standData.orders.filter(o => o.address !== "Stand Table");
 
             if (deliveries.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:#777;">No active delivery logs found.</p>';
+                container.innerHTML = '<p style="text-align:center; color:#777;">No delivery requests logged yet.</p>';
                 return;
             }
 
-            deliveries.reverse().forEach(o => {
+            // Show newest orders on top
+            [...deliveries].reverse().forEach(o => {
                 const isCompleted = o.status.includes('✅') || o.status.includes('Completed');
                 container.innerHTML += `
                     <div class="order-card ${isCompleted ? 'done' : ''}">
@@ -128,16 +136,25 @@
             });
         }
 
-        function toggleDelivery(orderId) {
+        async function toggleDelivery(orderId) {
             let order = standData.orders.find(o => o.id === orderId);
             if (order) {
                 order.status = order.status.includes('Pending') ? "Completed ✅" : "Pending Delivery 🚚";
-                localStorage.setItem('summerStandsData', JSON.stringify(standData));
-                loadDeliveries();
+                try {
+                    await fetch(DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(standData)
+                    });
+                    loadDeliveries();
+                } catch(e) {
+                    alert("Network error. Try again!");
+                }
             }
         }
 
+        // Automatically check for new delivery runs every 4 seconds
         loadDeliveries();
+        setInterval(loadDeliveries, 4000);
     </script>
 </body>
 </html>
