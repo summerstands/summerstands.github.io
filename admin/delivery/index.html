@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summer Stands - Delivery Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            background-color: #f7f9fa;
+            color: #333;
+            display: none; /* Hidden until password is correct */
+        }
+        .header {
+            background: #ff6600;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 { margin: 0; font-size: 1.8rem; }
+        .order-card {
+            background: white;
+            border-left: 6px solid #ffcc00;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        .order-card.done {
+            border-left-color: #4caf50;
+            opacity: 0.6;
+        }
+        .address-box {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff6600;
+            margin: 5px 0;
+        }
+        .items-box {
+            background: #fdfae6;
+            padding: 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        .btn-status {
+            width: 100%;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #ffcc00;
+        }
+        .btn-status.done-btn {
+            background-color: #e0e0e0;
+        }
+        .refresh-btn {
+            display: block;
+            width: 100%;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        // Password Protection Guard
+        const pass = prompt("Enter Delivery Portal Password:");
+        if (pass === "@summer2") {
+            document.body.style.display = "block";
+        } else {
+            alert("Wrong password! Access denied.");
+            window.location.href = "https://summerstands.github.io/";
+        }
+    </script>
+
+    <div class="header">
+        <h1>🚚 Bridgeview Deliveries</h1>
+        <p>Summer Stands Run Crew</p>
+    </div>
+
+    <button class="refresh-btn" onclick="loadDeliveries()">🔄 Refresh Delivery Run List</button>
+
+    <div id="delivery-list"></div>
+
+    <script>
+        let standData = { orders: [] };
+
+        function loadDeliveries() {
+            if (localStorage.getItem('summerStandsData')) {
+                standData = JSON.parse(localStorage.getItem('summerStandsData'));
+            }
+
+            const container = document.getElementById('delivery-list');
+            container.innerHTML = '';
+
+            // Filter out walk-up orders, only show delivery runs
+            const deliveries = standData.orders.filter(o => o.address !== "Stand Table");
+
+            if (deliveries.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#777;">No active delivery logs found.</p>';
+                return;
+            }
+
+            deliveries.reverse().forEach(o => {
+                const isCompleted = o.status.includes('✅') || o.status.includes('Completed');
+                container.innerHTML += `
+                    <div class="order-card ${isCompleted ? 'done' : ''}">
+                        <div><strong>Order #00${o.id} - ${o.name}</strong></div>
+                        <div class="address-box">📍 ${o.address}</div>
+                        <div class="items-box">📦 Bring: ${o.items}</div>
+                        <button class="btn-status ${isCompleted ? 'done-btn' : ''}" onclick="toggleDelivery(${o.id})">
+                            ${isCompleted ? 'Finished ✅ (Tap to reopen)' : 'Mark as Delivered 📦'}
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleDelivery(orderId) {
+            let order = standData.orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = order.status.includes('Pending') ? "Completed ✅" : "Pending Delivery 🚚";
+                localStorage.setItem('summerStandsData', JSON.stringify(standData));
+                loadDeliveries();
+            }
+        }
+
+        loadDeliveries();
+    </script>
+</body>
+</html>
