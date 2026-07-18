@@ -1,117 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summer Stands - Bridgeview Lemonade</title>
-    <style>
-        :root {
-            --primary: #ffcc00;
-            --secondary: #ff6600;
-            --dark: #333;
-            --light: #f9f9f9;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #fffdf0;
-            color: var(--dark);
-        }
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            text-align: center;
-            padding: 2rem;
-        }
-        header h1 { margin: 0; font-size: 2.5rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
-        header p { margin: 5px 0 0; font-size: 1.1rem; }
-        
-        .container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-        }
-        .menu-item {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 2px solid #f1f1f1;
-        }
-        .menu-item h3 { margin: 10px 0; }
-        .price { font-weight: bold; color: var(--secondary); font-size: 1.2rem; }
-        .stock-tag { font-size: 0.85rem; color: #777; margin-bottom: 10px; }
-        
-        .btn {
-            background-color: var(--primary);
-            border: none;
-            padding: 8px 16px;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        .order-section {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            margin-top: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .status-msg {
-            text-align: center;
-            font-weight: bold;
-            color: #777;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>Summer Stands</h1>
-        <p>Refreshing Bridgeview, One Cup at a Time! (Lazy-Friendly Delivery)</p>
-    </header>
-
-    <div class="container">
-        <div class="status-msg" id="loading-status">📡 Connecting to live database...</div>
-        <h2>Our Summer Menu</h2>
-        <div class="menu-grid" id="customer-menu"></div>
-
-        <div class="order-section">
-            <h2>Your Order Details</h2>
-            <div id="cart-summary">
-                <p>No items added yet. Click "Add to Order" above!</p>
-            </div>
-            <hr>
-            <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
-                <p><strong>Delivery Fee:</strong> $0.20 (Bridgeview special)</p>
-                <p><strong>Total Amount Due:</strong> $<span id="cart-total">0.00</span></p>
-                <div style="margin-bottom: 15px;">
-                    <label>Your Name: </label><br>
-                    <input type="text" id="cust-name" required style="width:100%; padding:8px; margin-top:5px;">
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label>Bridgeview Address / House Number: </label><br>
-                    <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
-                </div>
-                <button type="submit" id="submit-order-btn" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // Automatic free online database endpoint
+<script>
         const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/summer_stands_data";
 
         let standData = {
@@ -129,38 +16,45 @@
 
         let cart = {};
 
-        // Fetch current live data instantly on load
         async function fetchLiveData() {
             try {
                 const response = await fetch(DB_URL);
                 if (response.ok) {
-                    standData = await response.json();
+                    const text = await response.text();
+                    if (text && text.trim().length > 0) {
+                        standData = JSON.parse(text);
+                    }
                     document.getElementById('loading-status').innerText = "🟢 Connected Live to Stand Inventory";
                 } else {
-                    // If DB is empty, initialize it with defaults
                     await saveLiveData();
                 }
             } catch (e) {
                 document.getElementById('loading-status').innerText = "⚠️ Running in offline backup mode";
+                console.error("Fetch error:", e);
             }
             renderCustomerMenu();
         }
 
         async function saveLiveData() {
             try {
-                await fetch(DB_URL, {
+                const response = await fetch(DB_URL, {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(standData)
                 });
+                if (!response.ok) {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
             } catch(e) {
-                console.error("Database save error", e);
+                console.error("Database save error:", e);
             }
         }
 
         function renderCustomerMenu() {
             const container = document.getElementById('customer-menu');
             container.innerHTML = '';
-            
             for (let item in standData.inventory) {
                 let details = standData.inventory[item];
                 container.innerHTML += `
@@ -182,7 +76,7 @@
                 cart[item]++;
                 updateCartUI();
             } else {
-                alert(`Sorry, we only have ${standData.inventory[item].stock} items left of ${item}!`);
+                alert(`Sorry, we only have ${standData.inventory[item].stock} left!`);
             }
         }
 
@@ -220,10 +114,12 @@
             document.getElementById('submit-order-btn').disabled = true;
             document.getElementById('submit-order-btn').innerText = "Sending Order...";
 
-            // Re-fetch right before submitting to prevent stock overlapping
             try {
                 const res = await fetch(DB_URL);
-                if(res.ok) standData = await res.json();
+                if(res.ok) {
+                    const text = await res.text();
+                    if (text) standData = JSON.parse(text);
+                }
             } catch(err){}
 
             const name = document.getElementById('cust-name').value;
@@ -252,20 +148,20 @@
                 status: 'Pending Delivery 🚚'
             });
 
-            await saveLiveData();
-            
-            cart = {};
-            document.getElementById('checkout-form').reset();
-            updateCartUI();
-            renderCustomerMenu();
+            try {
+                await saveLiveData();
+                alert('🎉 Order placed successfully! Sent straight to the database.');
+                cart = {};
+                document.getElementById('checkout-form').reset();
+                updateCartUI();
+                renderCustomerMenu();
+            } catch (err) {
+                alert('⚠️ Order processed, but database failed to save. Please notify the stand owners!');
+            }
             
             document.getElementById('submit-order-btn').disabled = false;
             document.getElementById('submit-order-btn').innerText = "Send Order to Stand!";
-            alert('🎉 Order placed successfully! The stand owners have received it instantly.');
         }
 
-        // Start connection
         fetchLiveData();
     </script>
-</body>
-</html>
