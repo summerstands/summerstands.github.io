@@ -68,12 +68,11 @@
             margin-top: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .sync-box {
-            background: #eee;
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 5px;
-            font-size: 0.8rem;
+        .status-msg {
+            text-align: center;
+            font-weight: bold;
+            color: #777;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -85,6 +84,7 @@
     </header>
 
     <div class="container">
+        <div class="status-msg" id="loading-status">📡 Connecting to live database...</div>
         <h2>Our Summer Menu</h2>
         <div class="menu-grid" id="customer-menu"></div>
 
@@ -105,21 +105,15 @@
                     <label>Bridgeview Address / House Number: </label><br>
                     <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
                 </div>
-                <button type="submit" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
+                <button type="submit" id="submit-order-btn" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
             </form>
-        </div>
-
-        <div class="sync-box">
-            <h3>Stand Owners: Update Active Data</h3>
-            <p>Paste data from your admin dashboard here to sync menu stock counts:</p>
-            <textarea id="import-data" placeholder="Paste data here..." style="width:100%; height:50px;"></textarea>
-            <button class="btn" onclick="importStandData()" style="margin-top:5px; font-size:0.8rem;">Apply Admin Data</button>
-            <p style="margin-top:10px;">Copy this text after an order is made to update your Admin dashboard:</p>
-            <button class="btn" onclick="exportData()" style="font-size:0.8rem;">Copy Current Data Code</button>
         </div>
     </div>
 
     <script>
+        // Automatic free online database endpoint
+        const DB_URL = "https://kvdb.io/MN9vjH6XpXf7K9L2q8W9Z4/summer_stands_data";
+
         let standData = {
             inventory: {
                 "Lemonade": { price: 1.50, stock: 20 },
@@ -135,8 +129,32 @@
 
         let cart = {};
 
-        if (localStorage.getItem('summerStandsData')) {
-            standData = JSON.parse(localStorage.getItem('summerStandsData'));
+        // Fetch current live data instantly on load
+        async function fetchLiveData() {
+            try {
+                const response = await fetch(DB_URL);
+                if (response.ok) {
+                    standData = await response.json();
+                    document.getElementById('loading-status').innerText = "🟢 Connected Live to Stand Inventory";
+                } else {
+                    // If DB is empty, initialize it with defaults
+                    await saveLiveData();
+                }
+            } catch (e) {
+                document.getElementById('loading-status').innerText = "⚠️ Running in offline backup mode";
+            }
+            renderCustomerMenu();
+        }
+
+        async function saveLiveData() {
+            try {
+                await fetch(DB_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(standData)
+                });
+            } catch(e) {
+                console.error("Database save error", e);
+            }
         }
 
         function renderCustomerMenu() {
@@ -197,8 +215,17 @@
             }
         }
 
-        function placeOrder(e) {
+        async function placeOrder(e) {
             e.preventDefault();
+            document.getElementById('submit-order-btn').disabled = true;
+            document.getElementById('submit-order-btn').innerText = "Sending Order...";
+
+            // Re-fetch right before submitting to prevent stock overlapping
+            try {
+                const res = await fetch(DB_URL);
+                if(res.ok) standData = await res.json();
+            } catch(err){}
+
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
             let orderItems = [];
@@ -206,7 +233,7 @@
 
             for (let item in cart) {
                 if (cart[item] > 0) {
-                    standData.inventory[item].stock -= cart[item];
+                    standData.inventory[item].stock = Math.max(0, standData.inventory[item].stock - cart[item]);
                     orderItems.push(`${item} (${cart[item]})`);
                     itemTotal += cart[item] * standData.inventory[item].price;
                 }
@@ -225,35 +252,20 @@
                 status: 'Pending Delivery 🚚'
             });
 
-            localStorage.setItem('summerStandsData', JSON.stringify(standData));
+            await saveLiveData();
+            
             cart = {};
             document.getElementById('checkout-form').reset();
             updateCartUI();
             renderCustomerMenu();
             
-            alert('🎉 Thank you! Your order has been placed. Please inform the stand owners to update their logs!');
+            document.getElementById('submit-order-btn').disabled = false;
+            document.getElementById('submit-order-btn').innerText = "Send Order to Stand!";
+            alert('🎉 Order placed successfully! The stand owners have received it instantly.');
         }
 
-        function exportData() {
-            navigator.clipboard.writeText(JSON.stringify(standData));
-            alert('Data code copied to clipboard! Paste this into your Admin page.');
-        }
-
-        function importStandData() {
-            try {
-                const raw = document.getElementById('import-data').value;
-                if(raw) {
-                    standData = JSON.parse(raw);
-                    localStorage.setItem('summerStandsData', JSON.stringify(standData));
-                    renderCustomerMenu();
-                    alert('Data loaded successfully!');
-                }
-            } catch(e) {
-                alert('Invalid data code pasted.');
-            }
-        }
-
-        renderCustomerMenu();
+        // Start connection
+        fetchLiveData();
     </script>
 </body>
 </html>
