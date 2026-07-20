@@ -49,6 +49,13 @@
         .price { font-weight: bold; color: var(--secondary); font-size: 1.2rem; }
         .stock-tag { font-size: 0.85rem; color: #777; margin-bottom: 10px; }
         
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
         .btn {
             background-color: var(--primary);
             border: none;
@@ -59,7 +66,9 @@
             transition: 0.2s;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-danger { background-color: #ff4444; color: white; }
+        .btn-danger:hover { background-color: #cc3333; }
 
         .order-section {
             background: white;
@@ -67,6 +76,13 @@
             border-radius: 12px;
             margin-top: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .cart-count {
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-width: 30px;
+            display: inline-block;
+            line-height: 35px;
         }
     </style>
 </head>
@@ -84,7 +100,7 @@
         <div class="order-section">
             <h2>Your Order Details</h2>
             <div id="cart-summary">
-                <p>No items added yet. Click "Add to Order" above!</p>
+                <p>No items added yet. Use the buttons above to build your order!</p>
             </div>
             <hr>
             <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
@@ -111,7 +127,7 @@
         // Free open reverse proxy to handle Notion CORS requirements
         const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
 
-        // Latest prices updated here
+        // Latest items and prices
         let inventory = {
             "Lemonade": { price: 1.00, stock: 20 },
             "Oreo Milk Shake": { price: 2.00, stock: 10 },
@@ -122,31 +138,48 @@
 
         let cart = {};
 
+        // Initialize cart counts to 0 for all items
+        for (let item in inventory) {
+            cart[item] = 0;
+        }
+
         function renderCustomerMenu() {
             const container = document.getElementById('customer-menu');
             container.innerHTML = '';
             for (let item in inventory) {
                 let details = inventory[item];
+                let currentQty = cart[item] || 0;
+                
                 container.innerHTML += `
                     <div class="menu-item">
                         <h3>${item}</h3>
                         <p class="price">$${details.price.toFixed(2)}</p>
                         <p class="stock-tag">In Stock: ${details.stock}</p>
-                        <button class="btn" onclick="addToCart('${item}')" ${details.stock <= 0 ? 'disabled' : ''}>
-                            ${details.stock > 0 ? 'Add to Order' : 'Sold Out'}
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
+                            <span class="cart-count">${currentQty}</span>
+                            <button class="btn" onclick="addToCart('${item}')" ${currentQty >= details.stock || details.stock <= 0 ? 'disabled' : ''}>+</button>
+                        </div>
                     </div>
                 `;
             }
         }
 
         function addToCart(item) {
-            if (!cart[item]) cart[item] = 0;
             if (cart[item] < inventory[item].stock) {
                 cart[item]++;
+                renderCustomerMenu(); // Refresh the buttons/numbers on the grid
                 updateCartUI();
             } else {
                 alert(`Sorry, we only have ${inventory[item].stock} left!`);
+            }
+        }
+
+        function removeFromCart(item) {
+            if (cart[item] > 0) {
+                cart[item]--;
+                renderCustomerMenu(); // Refresh the buttons/numbers on the grid
+                updateCartUI();
             }
         }
 
@@ -174,7 +207,7 @@
                 form.style.display = 'block';
                 totalSpan.innerText = (subtotal + 2.00).toFixed(2);
             } else {
-                summary.innerHTML = '<p>No items added yet. Click "Add to Order" above!</p>';
+                summary.innerHTML = '<p>No items added yet. Use the buttons above to build your order!</p>';
                 form.style.display = 'none';
             }
         }
@@ -223,8 +256,12 @@
 
                 if (response.ok) {
                     alert('🎉 Order sent successfully! Check your Notion dashboard now!');
-                    cart = {};
+                    // Reset cart counts back to 0
+                    for (let item in inventory) {
+                        cart[item] = 0;
+                    }
                     document.getElementById('checkout-form').reset();
+                    renderCustomerMenu();
                     updateCartUI();
                 } else {
                     const errDetails = await response.text();
