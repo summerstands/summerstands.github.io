@@ -23,7 +23,6 @@
             color: white;
             text-align: center;
             padding: 2rem;
-            position: relative;
         }
         header h1 { margin: 0; font-size: 2.5rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
         header p { margin: 5px 0 0; font-size: 1.1rem; }
@@ -33,32 +32,6 @@
             margin: 2rem auto;
             padding: 0 1rem;
         }
-
-        /* Tabs for switching between Customer and Admin view easily during testing */
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 2rem;
-        }
-        .tab-btn {
-            background-color: #ddd;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-weight: bold;
-            border-radius: 20px;
-            transition: 0.3s;
-        }
-        .tab-btn.active {
-            background-color: var(--secondary);
-            color: white;
-        }
-
-        .page { display: none; }
-        .page.active { display: block; }
-
-        /* Menu Grid */
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -88,7 +61,6 @@
         .btn:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        /* Order Form / Cart section */
         .order-section {
             background: white;
             padding: 2rem;
@@ -96,173 +68,63 @@
             margin-top: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-
-        /* Admin Dashboard Styles */
-        .admin-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } }
-        
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        table, th, td { border: 1px solid #ddd; }
-        th, td { padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
-
-        .flex-space { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
     <header>
         <h1>Summer Stands</h1>
-        <p>Refreshing Bridgeview, One Cup at a Time! (Lazy-Friendly Delivery)</p>
+        <p>Refreshing Bridgeview, One Cup at a Time!</p>
     </header>
 
     <div class="container">
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchPage('customer')">Customer Menu</button>
-            <button class="tab-btn" onclick="switchPage('admin')">Admin Dashboard 🔐</button>
-        </div>
+        <h2>Our Summer Menu</h2>
+        <div class="menu-grid" id="customer-menu"></div>
 
-        <div id="customer-page" class="page active">
-            <h2>Our Summer Menu</h2>
-            <div class="menu-grid" id="customer-menu">
-                </div>
-
-            <div class="order-section">
-                <h2>Your Order Details</h2>
-                <div id="cart-summary">
-                    <p>No items added yet. Click "Add to Order" above!</p>
-                </div>
-                <hr>
-                <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
-                    <p><strong>Delivery Fee:</strong> $0.20 (Bridgeview special)</p>
-                    <p><strong>Total Amount Due:</strong> $<span id="cart-total">0.00</span></p>
-                    <div style="margin-bottom: 15px;">
-                        <label>Your Name: </label><br>
-                        <input type="text" id="cust-name" required style="width:100%; padding:8px; margin-top:5px;">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label>Bridgeview Address / House Number: </label><br>
-                        <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
-                    </div>
-                    <button type="submit" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
-                </form>
+        <div class="order-section">
+            <h2>Your Order Details</h2>
+            <div id="cart-summary">
+                <p>No items added yet. Click "Add to Order" above!</p>
             </div>
-        </div>
-
-        <div id="admin-page" class="page">
-            <h2>Stand Administration</h2>
-            
-            <div class="card">
-                <h3>Earnings & Splitting</h3>
-                <div class="admin-grid">
-                    <div>
-                        <p><strong>Total Revenue:</strong> $<span id="total-revenue">0.00</span></p>
-                        <p><strong>Delivery Fees Collected:</strong> $<span id="total-fees">0.00</span></p>
-                    </div>
-                    <div>
-                        <label>Split Profit Between (Number of People):</label>
-                        <input type="number" id="split-count" value="2" min="1" oninput="calculateSplits()" style="width: 60px; padding: 5px;">
-                        <p><strong>Each Person Gets:</strong> $<span id="split-amount">0.00</span></p>
-                    </div>
+            <hr>
+            <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
+                <p><strong>Delivery Fee:</strong> $2.00</p>
+                <p><strong>Total Amount Due:</strong> $<span id="cart-total">0.00</span></p>
+                <div style="margin-bottom: 15px;">
+                    <label>Your Name: </label><br>
+                    <input type="text" id="cust-name" required style="width:100%; padding:8px; margin-top:5px;">
                 </div>
-            </div>
-
-            <div class="admin-grid">
-                <div class="card">
-                    <h3>Inventory Tracker</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                tyranny<th>Item</th>
-                                <th>In Stock</th>
-                                <th>Update</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-inventory">
-                            </tbody>
-                    </table>
+                <div style="margin-bottom: 15px;">
+                    <label>Bridgeview Address / House Number: </label><br>
+                    <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
                 </div>
-
-                <div class="card">
-                    <h3>Manual Cash Entry</h3>
-                    <form onsubmit="handleManualEntry(event)">
-                        <label>Amount Paid ($):</label><br>
-                        <input type="number" step="0.01" id="manual-amount" required style="width:90%; padding:5px; margin: 5px 0;"><br>
-                        <label>Notes / Items Sold:</label><br>
-                        <input type="text" id="manual-notes" placeholder="e.g., 2 Lemonades walk up" required style="width:90%; padding:5px; margin: 5px 0;"><br>
-                        <button type="submit" class="btn" style="margin-top:5px;">Log Cash</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Order Log</h3>
-                <table id="orders-table">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Customer</th>
-                            <th>Address</th>
-                            <th>Items</th>
-                            <th>Total Due</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-orders">
-                        </tbody>
-                </table>
-            </div>
+                <button type="submit" id="submit-order-btn" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
+            </form>
         </div>
     </div>
 
     <script>
-        // Initial Stand Data Configuration
+        // Your Notion Credentials
+        const NOTION_TOKEN = "ntn_b71251085285F0zyxLyBuRjvgzBleNjZmfpa40ZxggK9c4";
+        const DATABASE_ID = "3a11a8b0873080c8b274fb20867d2b85";
+        
+        // Free open reverse proxy to handle Notion CORS requirements
+        const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+
+        // Updated names and prices applied here
         let inventory = {
-            "Lemonade": { price: 1.50, stock: 20 },
-            "Oreo Drink": { price: 2.50, stock: 10 },
+            "Lemonade": { price: 1.00, stock: 20 },
+            "Oreo Milk Shake": { price: 2.00, stock: 10 },
             "Rose Milk": { price: 2.00, stock: 12 },
-            "Chips": { price: 1.00, stock: 15 },
-            "Zevats": { price: 1.75, stock: 8 }
+            "Chips": { price: 1.50, stock: 15 },
+            "Zbar": { price: 1.75, stock: 8 }
         };
 
-        let orders = [];
-        let totalRevenue = 0;
-        let totalFees = 0;
         let cart = {};
 
-        // Switch between Admin and Customer View
-        function switchPage(pageName) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            
-            document.getElementById(`${pageName}-page`).classList.add('active');
-            event.target.classList.add('active');
-            
-            // Refresh displays whenever switching views
-            renderCustomerMenu();
-            renderAdminDashboard();
-        }
-
-        // Render the menu items for the customer
         function renderCustomerMenu() {
             const container = document.getElementById('customer-menu');
             container.innerHTML = '';
-            
             for (let item in inventory) {
                 let details = inventory[item];
                 container.innerHTML += `
@@ -278,15 +140,13 @@
             }
         }
 
-        // Customer Cart Management
         function addToCart(item) {
             if (!cart[item]) cart[item] = 0;
-            
             if (cart[item] < inventory[item].stock) {
                 cart[item]++;
                 updateCartUI();
             } else {
-                alert(`Sorry, we only have ${inventory[item].stock} items left of ${item}!`);
+                alert(`Sorry, we only have ${inventory[item].stock} left!`);
             }
         }
 
@@ -312,140 +172,74 @@
             if (hasItems) {
                 summary.innerHTML = html;
                 form.style.display = 'block';
-                // Add the 20 cent neighborhood fee
-                totalSpan.innerText = (subtotal + 0.20).toFixed(2);
+                totalSpan.innerText = (subtotal + 2.00).toFixed(2);
             } else {
                 summary.innerHTML = '<p>No items added yet. Click "Add to Order" above!</p>';
                 form.style.display = 'none';
             }
         }
 
-        // Customer Order Submission
-        function placeOrder(e) {
+        async function placeOrder(e) {
             e.preventDefault();
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = true;
+            btn.innerText = "Sending Order to Notion...";
+
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
             let orderItems = [];
             let itemTotal = 0;
 
-            // Reduce stock and construct order text
             for (let item in cart) {
                 if (cart[item] > 0) {
-                    inventory[item].stock -= cart[item];
                     orderItems.push(`${item} (${cart[item]})`);
                     itemTotal += cart[item] * inventory[item].price;
                 }
             }
 
-            let finalBill = itemTotal + 0.20;
-            totalRevenue += finalBill;
-            totalFees += 0.20;
+            let finalBill = itemTotal + 2.00;
 
-            // Save order inside database simulation
-            orders.push({
-                id: orders.length + 1,
-                name: name,
-                address: address,
-                items: orderItems.join(', '),
-                total: finalBill,
-                status: 'Pending Delivery 🚚'
-            });
+            const notionData = {
+                parent: { database_id: DATABASE_ID },
+                properties: {
+                    "Name": { title: [{ text: { content: name } }] },
+                    "Address": { rich_text: [{ text: { content: address } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Total Due": { number: finalBill },
+                    "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
+                }
+            };
 
-            // Clear everything out
-            cart = {};
-            document.getElementById('checkout-form').reset();
-            updateCartUI();
-            renderCustomerMenu();
+            try {
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(notionData)
+                });
+
+                if (response.ok) {
+                    alert('🎉 Order sent successfully! Check your Notion dashboard now!');
+                    cart = {};
+                    document.getElementById('checkout-form').reset();
+                    updateCartUI();
+                } else {
+                    const errDetails = await response.text();
+                    console.error(errDetails);
+                    alert('⚠️ Notion rejected the format. Make sure your column names match exactly!');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('⚠️ Connection error trying to reach Notion.');
+            }
             
-            alert('🎉 Thank you! Your Summer Stands order has been sent to the team.');
+            btn.disabled = false;
+            btn.innerText = "Send Order to Stand!";
         }
 
-        // Admin Dashboard Renders
-        function renderAdminDashboard() {
-            // Render Inventory Updates
-            const invBody = document.getElementById('admin-inventory');
-            invBody.innerHTML = '';
-            for (let item in inventory) {
-                invBody.innerHTML += `
-                    <tr>
-                        <td><strong>${item}</strong></td>
-                        <td><span id="stock-val-${item}">${inventory[item].stock}</span></td>
-                        <td>
-                            <button onclick="changeStock('${item}', 5)" style="padding:2px 6px;">+5</button>
-                            <button onclick="changeStock('${item}', -1)" style="padding:2px 6px;">-1</button>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            // Render Orders Log
-            const orderBody = document.getElementById('admin-orders');
-            orderBody.innerHTML = '';
-            orders.forEach(o => {
-                orderBody.innerHTML += `
-                    <tr>
-                        <td>#00${o.id}</td>
-                        <td>${o.name}</td>
-                        <td>${o.address}</td>
-                        <td>${o.items}</td>
-                        <td>$${o.total.toFixed(2)}</td>
-                        <td>
-                            <button onclick="completeOrder(${o.id})" class="btn" style="padding:3px 8px; font-size:0.8rem;">
-                                ${o.status}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            // Update financial data fields
-            document.getElementById('total-revenue').innerText = totalRevenue.toFixed(2);
-            document.getElementById('total-fees').innerText = totalFees.toFixed(2);
-            calculateSplits();
-        }
-
-        function changeStock(item, amount) {
-            inventory[item].stock = Math.max(0, inventory[item].stock + amount);
-            renderAdminDashboard();
-        }
-
-        function completeOrder(orderId) {
-            let order = orders.find(o => o.id === orderId);
-            if (order) {
-                order.status = "Completed ✅";
-                renderAdminDashboard();
-            }
-        }
-
-        // Direct manual cash adding form
-        function handleManualEntry(e) {
-            e.preventDefault();
-            const amount = parseFloat(document.getElementById('manual-amount').value);
-            const notes = document.getElementById('manual-notes').value;
-
-            totalRevenue += amount;
-            orders.push({
-                id: orders.length + 1,
-                name: "Walk-up / Manual Cash",
-                address: "Stand Location",
-                items: notes,
-                total: amount,
-                status: "Completed Paid ✅"
-            });
-
-            document.getElementById('manual-amount').value = '';
-            document.getElementById('manual-notes').value = '';
-            renderAdminDashboard();
-        }
-
-        // Calculator algorithm for splitting cash perfectly among partners
-        function calculateSplits() {
-            const count = parseInt(document.getElementById('split-count').value) || 1;
-            const splitAmount = totalRevenue / count;
-            document.getElementById('split-amount').innerText = splitAmount.toFixed(2);
-        }
-
-        // Setup the page variables right away upon starting
         renderCustomerMenu();
     </script>
 </body>
