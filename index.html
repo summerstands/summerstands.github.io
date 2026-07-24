@@ -149,7 +149,7 @@
                     </div>
                 </div>
 
-                <p><strong>Delivery Fee:</strong> $2.00</p>
+                <p><strong>Delivery Fee:</strong> $1.50</p>
                 <p><strong>Total Amount Due:</strong> $<span id="cart-total">0.00</span></p>
                 <div style="margin-bottom: 15px;">
                     <label>Your Name: </label><br>
@@ -268,7 +268,7 @@
             if (hasItems) {
                 summary.innerHTML = html;
                 form.style.display = 'block';
-                let finalTotal = subtotal + 2.00 + tipAmount;
+                let finalTotal = subtotal + 1.50 + tipAmount;
                 totalSpan.innerText = finalTotal.toFixed(2);
             } else {
                 summary.innerHTML = '<p>No items added yet. Use the buttons above to build your order!</p>';
@@ -298,7 +298,7 @@
                 orderItems.push(`Tip ($${tipAmount.toFixed(2)})`);
             }
 
-            let finalBill = itemTotal + 2.00 + tipAmount;
+            let finalBill = itemTotal + 1.50 + tipAmount;
 
             const notionData = {
                 parent: { database_id: DATABASE_ID },
@@ -323,29 +323,4 @@
                 });
 
                 if (response.ok) {
-                    alert('🎉 Order sent successfully! Check your Notion dashboard now!');
-                    for (let item in inventory) {
-                        cart[item] = 0;
-                    }
-                    tipAmount = 0.00;
-                    document.getElementById('checkout-form').reset();
-                    renderCustomerMenu();
-                    updateCartUI();
-                } else {
-                    const errDetails = await response.text();
-                    console.error(errDetails);
-                    alert('⚠️ Notion rejected the format. Make sure your column names match exactly!');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('⚠️ Connection error trying to reach Notion.');
-            }
-            
-            btn.disabled = false;
-            btn.innerText = "Send Order to Stand!";
-        }
-
-        renderCustomerMenu();
-    </script>
-</body>
-</html>
+                    alert('🎉 Order sent successfully! Check your Notion dashboard
