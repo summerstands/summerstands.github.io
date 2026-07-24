@@ -110,4 +110,257 @@
             padding: 6px 12px;
             font-weight: bold;
             border-radius: 6px;
-            cursor: pointer
+            cursor: pointer;
+        }
+        .tip-btn.active {
+            background-color: #ff6600;
+            color: white;
+            border-color: #ff6600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Summer Stands</h1>
+        <p>Refreshing Bridgeview, One Cup at a Time!</p>
+    </header>
+
+    <div class="container">
+        <h2>Our Summer Menu</h2>
+        <div class="menu-grid" id="customer-menu"></div>
+
+        <div class="order-section">
+            <h2>Your Order Details</h2>
+            <div id="cart-summary">
+                <p>No items added yet. Use the buttons above to build your order!</p>
+            </div>
+            <hr>
+            <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
+                
+                <div class="tip-box">
+                    <strong style="font-size: 1.1rem; color: #ff6600;">💛 Add a Tip for the Stand Crew?</strong>
+                    <p>Tips directly support the local kids running this stand and help us keep prices low!</p>
+                    <div class="tip-options">
+                        <button type="button" class="tip-btn active" onclick="setTip(0, this)">No Tip</button>
+                        <button type="button" class="tip-btn" onclick="setTip(0.50, this)">$0.50</button>
+                        <button type="button" class="tip-btn" onclick="setTip(1.00, this)">$1.00</button>
+                        <button type="button" class="tip-btn" onclick="setTip(2.00, this)">$2.00</button>
+                        <button type="button" class="tip-btn" id="custom-tip-btn" onclick="promptCustomTip(this)">Custom</button>
+                    </div>
+                </div>
+
+                <p><strong>Delivery Fee:</strong> $1.50</p>
+                <p><strong>Total Amount Due:</strong> $<span id="cart-total">0.00</span></p>
+                <div style="margin-bottom: 15px;">
+                    <label>Your Name: </label><br>
+                    <input type="text" id="cust-name" required style="width:100%; padding:8px; margin-top:5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Bridgeview Address / House Number: </label><br>
+                    <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
+                </div>
+                <button type="submit" id="submit-order-btn" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const NOTION_TOKEN = "ntn_b71251085285F0zyxLyBuRjvgzBleNjZmfpa40ZxggK9c4";
+        const DATABASE_ID = "3a11a8b0873080c8b274fb20867d2b85";
+        const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+
+        let inventory = {
+            "Normal Lemonade": { price: 1.00, stock: 20 },
+            "Pink Lemonade": { price: 1.00, stock: 20 },
+            "Oreo Milk Shake": { price: 2.00, stock: 10 },
+            "Rose Milk": { price: 2.00, stock: 12 },
+            "Chips": { price: 1.25, stock: 15 },
+            "Zbar": { price: 1.00, stock: 8 }
+        };
+
+        let cart = {
+            "Normal Lemonade": 0,
+            "Pink Lemonade": 0,
+            "Oreo Milk Shake": 0,
+            "Rose Milk": 0,
+            "Chips": 0,
+            "Zbar": 0
+        };
+
+        let tipAmount = 0.00;
+
+        function renderCustomerMenu() {
+            const container = document.getElementById('customer-menu');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let item in inventory) {
+                let details = inventory[item];
+                let currentQty = cart[item] || 0;
+                
+                container.innerHTML += `
+                    <div class="menu-item">
+                        <h3>${item}</h3>
+                        <p class="price">$${details.price.toFixed(2)}</p>
+                        <p class="stock-tag">In Stock: ${details.stock}</p>
+                        <div class="btn-group">
+                            <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
+                            <span class="cart-count">${currentQty}</span>
+                            <button class="btn" onclick="addToCart('${item}')" ${currentQty >= details.stock || details.stock <= 0 ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function addToCart(item) {
+            if (cart[item] < inventory[item].stock) {
+                cart[item]++;
+                renderCustomerMenu();
+                updateCartUI();
+            } else {
+                alert(`Sorry, we only have ${inventory[item].stock} left!`);
+            }
+        }
+
+        function removeFromCart(item) {
+            if (cart[item] > 0) {
+                cart[item]--;
+                renderCustomerMenu();
+                updateCartUI();
+            }
+        }
+
+        function setTip(amount, btnElement) {
+            tipAmount = amount;
+            document.getElementById('custom-tip-btn').innerText = "Custom";
+            const buttons = document.querySelectorAll('.tip-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            updateCartUI();
+        }
+
+        function promptCustomTip(btnElement) {
+            let input = prompt("Enter custom tip amount ($):", "1.50");
+            if (input !== null) {
+                let val = parseFloat(input);
+                if (!isNaN(val) && val >= 0) {
+                    tipAmount = val;
+                    btnElement.innerText = `$${val.toFixed(2)}`;
+                    const buttons = document.querySelectorAll('.tip-btn');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    btnElement.classList.add('active');
+                    updateCartUI();
+                } else {
+                    alert("Please enter a valid amount.");
+                }
+            }
+        }
+
+        function updateCartUI() {
+            const summary = document.getElementById('cart-summary');
+            const form = document.getElementById('checkout-form');
+            const totalSpan = document.getElementById('cart-total');
+            
+            let html = '<ul>';
+            let subtotal = 0;
+            let hasItems = false;
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    hasItems = true;
+                    let cost = cart[item] * inventory[item].price;
+                    subtotal += cost;
+                    html += `<li>${item} x ${cart[item]} - $${cost.toFixed(2)}</li>`;
+                }
+            }
+            
+            if (tipAmount > 0) {
+                html += `<li>Tip - $${tipAmount.toFixed(2)}</li>`;
+            }
+            
+            html += '</ul>';
+
+            if (hasItems) {
+                summary.innerHTML = html;
+                form.style.display = 'block';
+                let finalTotal = subtotal + 1.50 + tipAmount;
+                totalSpan.innerText = finalTotal.toFixed(2);
+            } else {
+                summary.innerHTML = '<p>No items added yet. Use the buttons above to build your order!</p>';
+                form.style.display = 'none';
+            }
+        }
+
+        async function placeOrder(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = true;
+            btn.innerText = "Sending Order to Notion...";
+
+            const name = document.getElementById('cust-name').value;
+            const address = document.getElementById('cust-address').value;
+            let orderItems = [];
+            let itemTotal = 0;
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    orderItems.push(`${item} (${cart[item]})`);
+                    itemTotal += cart[item] * inventory[item].price;
+                }
+            }
+
+            if (tipAmount > 0) {
+                orderItems.push(`Tip ($${tipAmount.toFixed(2)})`);
+            }
+
+            let finalBill = itemTotal + 1.50 + tipAmount;
+
+            const notionData = {
+                parent: { database_id: DATABASE_ID },
+                properties: {
+                    "Name": { title: [{ text: { content: name } }] },
+                    "Address": { rich_text: [{ text: { content: address } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Total Due": { number: finalBill },
+                    "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
+                }
+            };
+
+            try {
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(notionData)
+                });
+
+                if (response.ok) {
+                    alert('🎉 Order sent successfully! Check your Notion dashboard now!');
+                    for (let item in inventory) {
+                        cart[item] = 0;
+                    }
+                    tipAmount = 0.00;
+                    document.getElementById('checkout-form').reset();
+                    renderCustomerMenu();
+                    updateCartUI();
+                } else {
+                    alert('⚠️ Notion rejected the format. Make sure your column names match exactly!');
+                }
+            } catch (err) {
+                alert('⚠️ Connection error trying to reach Notion.');
+            }
+            
+            btn.disabled = false;
+            btn.innerText = "Send Order to Stand!";
+        }
+
+        window.onload = function() {
+            renderCustomerMenu();
+        };
+    </script>
+</body>
+</html>
