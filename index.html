@@ -152,9 +152,7 @@
 
     <div class="container">
         <h2>Our Summer Menu</h2>
-        <div class="menu-grid" id="customer-menu">
-            <p>Syncing menu with Notion...</p>
-        </div>
+        <div class="menu-grid" id="customer-menu"></div>
 
         <div class="order-section">
             <h2>Your Order Details</h2>
@@ -192,4 +190,299 @@
 
             <div id="cashapp-section" class="cashapp-box">
                 <h3 style="color: #00a827; margin-top:0;">🎉 Order Sent to Notion!</h3>
-                <p>To complete your order, tap below
+                <p>To complete your order, tap below to pay via Cash App:</p>
+                <a id="cashapp-link" href="#" target="_blank" class="cashapp-btn">💚 Pay $<span id="cashapp-amount">0.00</span> on Cash App</a>
+                <p style="font-size:0.85rem; color:#666; margin-top:10px;">Or send to Cashtag: <strong id="display-cashtag">$YourCashtagHere</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CASH_APP_TAG = "YourCashtagHere"; 
+
+        const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
+        const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
+        const INVENTORY_DB_ID = "3aa1a8b08730800496e5ffc6fec7aead";
+
+        const PROXY_POST = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+        const PROXY_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
+
+        // Defaults set directly inside JavaScript
+        let inventory = {
+            "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
+            "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
+            "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
+            "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false },
+            "Chips": { price: 1.25, isDrink: false, stock: 10 },
+            "Zbar": { price: 1.00, isDrink: false, stock: 24 }
+        };
+
+        let cart = {
+            "Normal Lemonade": 0,
+            "Pink Lemonade": 0,
+            "Oreo Milk Shake": 0,
+            "Rose Milk": 0,
+            "Chips": 0,
+            "Zbar": 0
+        };
+
+        let tipAmount = 0.00;
+
+        function renderCustomerMenu() {
+            const container = document.getElementById('customer-menu');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let item in inventory) {
+                let details = inventory[item];
+                let currentQty = cart[item] || 0;
+                
+                let stockText = "";
+                let isSoldOut = false;
+
+                if (details.isDrink) {
+                    if (details.outOfStock) {
+                        stockText = `<span class="stock-tag out-tag">Out of Stock</span>`;
+                        isSoldOut = true;
+                    } else {
+                        stockText = `<span class="stock-tag" style="color: #28a745; font-weight: bold;">In Stock</span>`;
+                    }
+                } else {
+                    if (details.outOfStock || details.stock <= 0) {
+                        stockText = `<span class="stock-tag out-tag">Out of Stock</span>`;
+                        isSoldOut = true;
+                    } else {
+                        stockText = `<span class="stock-tag">In Stock: ${details.stock}</span>`;
+                    }
+                }
+                
+                container.innerHTML += `
+                    <div class="menu-item">
+                        <h3>${item}</h3>
+                        <p class="price">$${details.price.toFixed(2)}</p>
+                        <p>${stockText}</p>
+                        <div class="btn-group">
+                            <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
+                            <span class="cart-count">${currentQty}</span>
+                            <button class="btn" onclick="addToCart('${item}')" ${isSoldOut || (!details.isDrink && currentQty >= details.stock) ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchLiveStockFromNotion() {
+            try {
+                const response = await fetch(PROXY_QUERY, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    data.results.forEach(row => {
+                        let props = row.properties;
+                        let itemName = props["Item"]?.title[0]?.text?.content;
+                        let status = props["Status"]?.select?.name || props["Status"]?.status?.name;
+                        let numStock = props["StockCount"]?.number;
+
+                        if (itemName && inventory[itemName]) {
+                            if (status === "Out of Stock") {
+                                inventory[itemName].outOfStock = true;
+                            } else if (status === "In Stock") {
+                                inventory[itemName].outOfStock = false;
+                            }
+
+                            if (numStock !== undefined && numStock !== null) {
+                                inventory[itemName].stock = numStock;
+                            }
+                        }
+                    });
+                    renderCustomerMenu(); // Re-render only if sync succeeds
+                }
+            } catch (err) {
+                console.log("Notion sync quiet error, keeping local menu defaults.");
+            }
+        }
+
+        function addToCart(item) {
+            let details = inventory[item];
+            if (details.isDrink) {
+                if (!details.outOfStock) {
+                    cart[item]++;
+                    renderCustomerMenu();
+                    updateCartUI();
+                } else {
+                    alert(`Sorry, ${item} is out of stock!`);
+                }
+            } else {
+                if (cart[item] < details.stock) {
+                    cart[item]++;
+                    renderCustomerMenu();
+                    updateCartUI();
+                } else {
+                    alert(`Sorry, we only have ${details.stock} ${item}(s) left!`);
+                }
+            }
+        }
+
+        function removeFromCart(item) {
+            if (cart[item] > 0) {
+                cart[item]--;
+                renderCustomerMenu();
+                updateCartUI();
+            }
+        }
+
+        function setTip(amount, btnElement) {
+            tipAmount = amount;
+            document.getElementById('custom-tip-btn').innerText = "Custom";
+            const buttons = document.querySelectorAll('.tip-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            updateCartUI();
+        }
+
+        function promptCustomTip(btnElement) {
+            let input = prompt("Enter custom tip amount ($):", "1.50");
+            if (input !== null) {
+                let val = parseFloat(input);
+                if (!isNaN(val) && val >= 0) {
+                    tipAmount = val;
+                    btnElement.innerText = `$${val.toFixed(2)}`;
+                    const buttons = document.querySelectorAll('.tip-btn');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    btnElement.classList.add('active');
+                    updateCartUI();
+                } else {
+                    alert("Please enter a valid amount.");
+                }
+            }
+        }
+
+        function updateCartUI() {
+            const summary = document.getElementById('cart-summary');
+            const form = document.getElementById('checkout-form');
+            const totalSpan = document.getElementById('cart-total');
+            
+            let html = '<ul>';
+            let subtotal = 0;
+            let hasItems = false;
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    hasItems = true;
+                    let cost = cart[item] * inventory[item].price;
+                    subtotal += cost;
+                    html += `<li>${item} x ${cart[item]} - $${cost.toFixed(2)}</li>`;
+                }
+            }
+            
+            if (tipAmount > 0) {
+                html += `<li>Tip - $${tipAmount.toFixed(2)}</li>`;
+            }
+            
+            html += '</ul>';
+
+            if (hasItems) {
+                summary.innerHTML = html;
+                form.style.display = 'block';
+                let finalTotal = subtotal + 1.50 + tipAmount;
+                totalSpan.innerText = finalTotal.toFixed(2);
+            } else {
+                summary.innerHTML = '<p>No items added yet. Use the buttons above to build your order!</p>';
+                form.style.display = 'none';
+            }
+        }
+
+        async function placeOrder(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = true;
+            btn.innerText = "Sending Order to Notion...";
+
+            const name = document.getElementById('cust-name').value;
+            const address = document.getElementById('cust-address').value;
+            let orderItems = [];
+            let itemTotal = 0;
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    orderItems.push(`${item} (${cart[item]})`);
+                    itemTotal += cart[item] * inventory[item].price;
+                    
+                    if (!inventory[item].isDrink) {
+                        inventory[item].stock -= cart[item];
+                    }
+                }
+            }
+
+            if (tipAmount > 0) {
+                orderItems.push(`Tip ($${tipAmount.toFixed(2)})`);
+            }
+
+            let finalBill = itemTotal + 1.50 + tipAmount;
+
+            const notionData = {
+                parent: { database_id: ORDERS_DB_ID },
+                properties: {
+                    "Name": { title: [{ text: { content: name } }] },
+                    "Address": { rich_text: [{ text: { content: address } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Total Due": { number: finalBill },
+                    "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
+                }
+            };
+
+            try {
+                const response = await fetch(PROXY_POST, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(notionData)
+                });
+
+                if (response.ok) {
+                    document.getElementById('checkout-form').style.display = 'none';
+                    
+                    const cashappSection = document.getElementById('cashapp-section');
+                    const cashappLink = document.getElementById('cashapp-link');
+                    const cashappAmount = document.getElementById('cashapp-amount');
+                    const displayCashtag = document.getElementById('display-cashtag');
+
+                    cashappAmount.innerText = finalBill.toFixed(2);
+                    displayCashtag.innerText = `$${CASH_APP_TAG}`;
+                    cashappLink.href = `https://cash.app/$${CASH_APP_TAG}/${finalBill.toFixed(2)}`;
+                    
+                    cashappSection.style.display = 'block';
+
+                    for (let item in inventory) {
+                        cart[item] = 0;
+                    }
+                    tipAmount = 0.00;
+                    renderCustomerMenu();
+                } else {
+                    alert('⚠️ Notion rejected the order format.');
+                }
+            } catch (err) {
+                alert('⚠️ Connection error trying to reach Notion.');
+            }
+            
+            btn.disabled = false;
+            btn.innerText = "Send Order to Stand!";
+        }
+
+        // Render the default menu IMMEDIATELY, then sync with Notion in the background
+        window.onload = function() {
+            renderCustomerMenu();
+            fetchLiveStockFromNotion();
+        };
+    </script>
+</body>
+</html>
