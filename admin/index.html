@@ -466,7 +466,6 @@
 
             renderRegisterMenu();
 
-            // Fetch Notion IDs instantly on-demand if not already loaded
             if (!details.notionPageId) {
                 await fetchLiveStock();
             }
@@ -479,9 +478,10 @@
             const pageUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/pages/${details.notionPageId}`);
             let statusLabel = newStatus ? "Out of Stock" : "In Stock";
             
+            // Fixed payload to match your Notion SELECT property type
             let updatePayload = {
                 properties: {
-                    "Status": { status: { name: statusLabel } }
+                    "Status": { select: { name: statusLabel } }
                 }
             };
 
@@ -498,7 +498,7 @@
 
                 if (!response.ok) {
                     console.error("Notion update failed:", await response.text());
-                    alert("⚠️ Could not update Notion. Check your Status column type.");
+                    alert("⚠️ Could not update Notion. Make sure 'Out of Stock' is an option in your Select dropdown.");
                 }
             } catch (err) {
                 console.error("Failed to update drink status in Notion", err);
@@ -648,7 +648,7 @@
 
             const pageUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/pages/${itemDetails.notionPageId}`);
             let updatePayload = { properties: { "StockCount": { number: newStock } } };
-            if (newStock <= 0) updatePayload.properties["Status"] = { status: { name: "Out of Stock" } };
+            if (newStock <= 0) updatePayload.properties["Status"] = { select: { name: "Out of Stock" } };
 
             try {
                 await fetch(pageUrl, {
