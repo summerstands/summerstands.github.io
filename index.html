@@ -207,15 +207,14 @@
         const PROXY_POST = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
         const PROXY_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
 
-        // Added "Ice Cream" to default inventory items!
         let inventory = {
-            "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
-            "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
-            "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
-            "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false },
-            "Ice Cream": { price: 2.00, isDrink: false, stock: 10 },
-            "Chips": { price: 1.25, isDrink: false, stock: 10 },
-            "Zbar": { price: 1.00, isDrink: false, stock: 24 }
+            "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Ice Cream": { price: 2.00, isDrink: false, stock: 10, notionPageId: null },
+            "Chips": { price: 1.25, isDrink: false, stock: 10, notionPageId: null },
+            "Zbar": { price: 1.00, isDrink: false, stock: 24, notionPageId: null }
         };
 
         let cart = {
@@ -292,6 +291,8 @@
                         let numStock = props["StockCount"]?.number;
 
                         if (itemName && inventory[itemName]) {
+                            inventory[itemName].notionPageId = row.id; // Store exact page ID to enable stock updates
+
                             if (status === "Out of Stock") {
                                 inventory[itemName].outOfStock = true;
                             } else if (status === "In Stock") {
@@ -307,6 +308,38 @@
                 }
             } catch (err) {
                 console.log("Notion sync quiet error, keeping local menu defaults.");
+            }
+        }
+
+        // New function that updates Notion's inventory database directly
+        async function updateNotionInventoryStock(itemName, newStock) {
+            let itemDetails = inventory[itemName];
+            if (!itemDetails || !itemDetails.notionPageId) return;
+
+            const pageUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/pages/${itemDetails.notionPageId}`);
+            
+            let updatePayload = {
+                properties: {
+                    "StockCount": { number: newStock }
+                }
+            };
+
+            if (newStock <= 0) {
+                updatePayload.properties["Status"] = { status: { name: "Out of Stock" } };
+            }
+
+            try {
+                await fetch(pageUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${NOTION_TOKEN}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatePayload)
+                });
+            } catch (err) {
+                console.error(`Could not update stock in Notion for ${itemName}:`, err);
             }
         }
 
@@ -410,6 +443,7 @@
             const address = document.getElementById('cust-address').value;
             let orderItems = [];
             let itemTotal = 0;
+            let itemsToUpdateStock = [];
 
             for (let item in cart) {
                 if (cart[item] > 0) {
@@ -418,6 +452,7 @@
                     
                     if (!inventory[item].isDrink) {
                         inventory[item].stock -= cart[item];
+                        itemsToUpdateStock.push({ name: item, newStock: inventory[item].stock });
                     }
                 }
             }
@@ -464,6 +499,11 @@
                 }
 
                 if (response.ok) {
+                    // Update Notion inventory stock numbers for purchased items
+                    for (let snack of itemsToUpdateStock) {
+                        await updateNotionInventoryStock(snack.name, snack.newStock);
+                    }
+
                     document.getElementById('checkout-form').style.display = 'none';
                     
                     const cashappSection = document.getElementById('cashapp-section');
