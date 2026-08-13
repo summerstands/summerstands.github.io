@@ -120,26 +120,28 @@
             border-color: #ff6600;
         }
 
-        .cashapp-box {
-            background: #e8fadf;
-            border: 2px solid var(--cashapp);
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            margin-top: 15px;
-            display: none;
-        }
-        .cashapp-btn {
+        .cashapp-submit-btn {
             background-color: var(--cashapp);
             color: white;
-            font-size: 1.1rem;
-            text-decoration: none;
-            display: inline-block;
-            padding: 12px 24px;
-            border-radius: 30px;
+            font-size: 1.2rem;
             font-weight: bold;
-            margin-top: 10px;
-            box-shadow: 0 4px 10px rgba(0,214,50,0.3);
+            border: none;
+            border-radius: 30px;
+            padding: 14px 28px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 214, 50, 0.3);
+            transition: 0.2s;
+        }
+        .cashapp-submit-btn:hover {
+            background-color: #00b82b;
+            transform: translateY(-2px);
+        }
+        .cashapp-submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
     </style>
 </head>
@@ -160,7 +162,7 @@
                 <p>No items added yet. Use the buttons above to build your order!</p>
             </div>
             <hr>
-            <form id="checkout-form" onsubmit="placeOrder(event)" style="display:none;">
+            <form id="checkout-form" onsubmit="placeOrderAndPay(event)" style="display:none;">
                 
                 <div class="tip-box">
                     <strong style="font-size: 1.1rem; color: #ff6600;">💛 Add a Tip for the Stand Crew?</strong>
@@ -185,15 +187,10 @@
                     <input type="text" id="cust-address" required style="width:100%; padding:8px; margin-top:5px;">
                 </div>
                 
-                <button type="submit" id="submit-order-btn" class="btn" style="background-color: var(--secondary); color: white; width: 100%; padding: 12px;">Send Order to Stand!</button>
+                <button type="submit" id="submit-order-btn" class="cashapp-submit-btn">
+                    💚 Submit & Pay $<span id="btn-total">0.00</span> on Cash App
+                </button>
             </form>
-
-            <div id="cashapp-section" class="cashapp-box">
-                <h3 style="color: #00a827; margin-top:0;">🎉 Order Sent to Notion!</h3>
-                <p>To complete your order, tap below to pay via Cash App:</p>
-                <a id="cashapp-link" href="#" target="_blank" class="cashapp-btn">💚 Pay $<span id="cashapp-amount">0.00</span> on Cash App</a>
-                <p style="font-size:0.85rem; color:#666; margin-top:10px;">Or send to Cashtag: <strong id="display-cashtag">$YourCashtagHere</strong></p>
-            </div>
         </div>
     </div>
 
@@ -291,7 +288,7 @@
                         let numStock = props["StockCount"]?.number;
 
                         if (itemName && inventory[itemName]) {
-                            inventory[itemName].notionPageId = row.id; // Store exact page ID to enable stock updates
+                            inventory[itemName].notionPageId = row.id;
 
                             if (status === "Out of Stock") {
                                 inventory[itemName].outOfStock = true;
@@ -311,7 +308,6 @@
             }
         }
 
-        // New function that updates Notion's inventory database directly
         async function updateNotionInventoryStock(itemName, newStock) {
             let itemDetails = inventory[itemName];
             if (!itemDetails || !itemDetails.notionPageId) return;
@@ -402,6 +398,7 @@
             const summary = document.getElementById('cart-summary');
             const form = document.getElementById('checkout-form');
             const totalSpan = document.getElementById('cart-total');
+            const btnTotalSpan = document.getElementById('btn-total');
             
             let html = '<ul>';
             let subtotal = 0;
@@ -427,17 +424,18 @@
                 form.style.display = 'block';
                 let finalTotal = subtotal + 1.50 + tipAmount;
                 totalSpan.innerText = finalTotal.toFixed(2);
+                if (btnTotalSpan) btnTotalSpan.innerText = finalTotal.toFixed(2);
             } else {
                 summary.innerHTML = '<p>No items added yet. Use the buttons above to build your order!</p>';
                 form.style.display = 'none';
             }
         }
 
-        async function placeOrder(e) {
+        async function placeOrderAndPay(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-order-btn');
             btn.disabled = true;
-            btn.innerText = "Sending Order to Notion...";
+            btn.innerText = "Processing & Opening Cash App...";
 
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
@@ -499,24 +497,20 @@
                 }
 
                 if (response.ok) {
-                    // Update Notion inventory stock numbers for purchased items
+                    // Update stock counts in Notion
                     for (let snack of itemsToUpdateStock) {
                         await updateNotionInventoryStock(snack.name, snack.newStock);
                     }
 
+                    // Open Cash App link immediately in a new tab
+                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalBill.toFixed(2)}`;
+                    window.open(cashAppUrl, '_blank');
+
+                    alert(`🎉 Order sent to Notion! Cash App is opening now for $${finalBill.toFixed(2)}.`);
+
+                    // Reset cart UI
+                    document.getElementById('checkout-form').reset();
                     document.getElementById('checkout-form').style.display = 'none';
-                    
-                    const cashappSection = document.getElementById('cashapp-section');
-                    const cashappLink = document.getElementById('cashapp-link');
-                    const cashappAmount = document.getElementById('cashapp-amount');
-                    const displayCashtag = document.getElementById('display-cashtag');
-
-                    cashappAmount.innerText = finalBill.toFixed(2);
-                    displayCashtag.innerText = `$${CASH_APP_TAG}`;
-                    cashappLink.href = `https://cash.app/$${CASH_APP_TAG}/${finalBill.toFixed(2)}`;
-                    
-                    cashappSection.style.display = 'block';
-
                     for (let item in inventory) {
                         cart[item] = 0;
                     }
@@ -533,7 +527,7 @@
             }
             
             btn.disabled = false;
-            btn.innerText = "Send Order to Stand!";
+            updateCartUI();
         }
 
         window.onload = function() {
