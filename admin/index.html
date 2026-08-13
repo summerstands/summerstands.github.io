@@ -3,169 +3,632 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summer Stands - Dashboard</title>
+    <title>Summer Stands - Crew Register</title>
     <style>
         :root {
             --primary: #ffcc00;
             --secondary: #ff6600;
             --dark: #333;
-            --light: #f9f9f9;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 2rem;
-            background-color: #fafafa;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
             color: var(--dark);
-            display: none; /* Hidden until password is correct */
         }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .admin-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        
-        .card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table, th, td { border: 1px solid #ddd; }
-        th, td { padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        
-        .btn { background-color: var(--primary); border: none; padding: 8px 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .status-banner { background: #e0f7fa; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; color: #ff6600; }
+        header {
+            background: linear-gradient(135deg, var(--secondary), #d9534f);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+        header h1 { margin: 0; font-size: 1.8rem; }
+        header p { margin: 5px 0 0; opacity: 0.9; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0 1rem 120px 1rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .menu-item {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 2px solid #e1e1e1;
+        }
+        .menu-item h3 { margin: 5px 0; font-size: 1.1rem; }
+        .price { font-weight: bold; color: var(--secondary); font-size: 1.1rem; margin: 5px 0; }
+        .stock-tag { font-size: 0.8rem; color: #666; margin-bottom: 8px; }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .btn {
+            background-color: var(--primary);
+            border: none;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .btn:disabled { background-color: #ddd; cursor: not-allowed; }
+        .btn-danger { background-color: #ff4444; color: white; }
+
+        .cart-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            height: fit-content;
+        }
+        .cart-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .cart-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tip-box {
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            border: 1px dashed #ffcc00;
+        }
+        .tip-btn {
+            background: white;
+            border: 1px solid #ffcc00;
+            padding: 6px 10px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .tip-btn.active {
+            background: var(--primary);
+            color: black;
+        }
+
+        .total-box {
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .total-box h2 { margin: 0; color: var(--secondary); font-size: 2rem; }
+
+        .calc-box {
+            background: #eef7ff;
+            border: 2px solid #0088ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .calc-box label { font-weight: bold; display: block; margin-bottom: 5px; }
+        .calc-box input {
+            width: 90%;
+            padding: 8px;
+            font-size: 1.1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .change-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #0088ff;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .breakdown-text {
+            font-size: 0.95rem;
+            color: #333;
+            margin-top: 5px;
+            background: #ffffff;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #cce5ff;
+        }
+
+        .submit-btn {
+            background-color: #28a745;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .submit-btn:disabled { background-color: #ccc; }
+
+        /* Floating Delivery Widget */
+        .delivery-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 340px;
+            background: white;
+            border: 2px solid #ff6600;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            overflow: hidden;
+        }
+        .delivery-header {
+            background: #ff6600;
+            color: white;
+            padding: 8px 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delivery-body {
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .delivery-card {
+            background: #fffdf0;
+            border: 1px solid #ffe0b2;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .delivery-card strong { color: #d9534f; }
+        .time-badge {
+            float: right;
+            background: #ffcc00;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
 
-    <script>
-        const pass = prompt("Enter Admin Password:");
-        if (pass === "@summer2") {
-            document.body.style.display = "block";
-        } else {
-            alert("Wrong password! Access denied.");
-            window.location.href = "https://summerstands.github.io/";
-        }
-    </script>
+    <header>
+        <h1>🎪 Summer Stands - Crew Register</h1>
+        <p>In-Person Walk-up POS & Live Delivery Tracker</p>
+    </header>
 
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>🔐 Summer Stands Administration (Notion Hub)</h1>
-            <button class="btn" onclick="fetchNotionOrders()" style="background:#4caf50; color:white;">🔄 Refresh Orders</button>
-        </div>
-        
-        <div class="status-banner" id="sync-status">📡 Fetching live Notion data...</div>
-
-        <div class="card">
-            <h3>Earnings Summary</h3>
-            <p><strong>Total Revenue:</strong> $<span id="total-revenue">0.00</span></p>
+    <div class="layout">
+        <div>
+            <h2>Select Items</h2>
+            <div class="menu-grid" id="register-menu"></div>
         </div>
 
-        <div class="card">
-            <h3>Order Log (From Notion)</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Customer</th>
-                        <th>Location</th>
-                        <th>Items</th>
-                        <th>Total Due</th>
-                        <th>Status (Click to toggle)</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-orders"></tbody>
-            </table>
+        <div class="cart-panel">
+            <h2>Current Order</h2>
+            <ul id="cart-list" class="cart-list">
+                <li style="color: #777;">Tap + on items to build order</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong style="color: #ff6600;">💛 Add Walk-Up Tip?</strong>
+                <div style="display: flex; gap: 5px; justify-content: center; margin-top: 8px; flex-wrap: wrap;">
+                    <button type="button" class="tip-btn active" onclick="setRegisterTip(0, this)">$0</button>
+                    <button type="button" class="tip-btn" onclick="setRegisterTip(0.50, this)">$0.50</button>
+                    <button type="button" class="tip-btn" onclick="setRegisterTip(1.00, this)">$1.00</button>
+                    <button type="button" class="tip-btn" onclick="setRegisterTip(2.00, this)">$2.00</button>
+                    <button type="button" class="tip-btn" id="custom-tip-btn" onclick="promptCustomRegisterTip(this)">Custom</button>
+                </div>
+            </div>
+
+            <div class="total-box">
+                <small>TOTAL DUE</small>
+                <h2>$<span id="total-due">0.00</span></h2>
+            </div>
+
+            <div class="calc-box">
+                <label for="cash-given">💵 Cash Tendered ($):</label>
+                <input type="number" id="cash-given" step="0.01" placeholder="e.g. 10.00" oninput="calculateChange()">
+                <div class="change-display" id="change-due">Change: $0.00</div>
+                <div class="breakdown-text" id="change-breakdown" style="display:none;"></div>
+            </div>
+
+            <button type="button" id="complete-sale-btn" class="submit-btn" onclick="completeWalkupSale()" disabled>
+                ✅ Complete Walk-up Sale
+            </button>
+        </div>
+    </div>
+
+    <div class="delivery-widget">
+        <div class="delivery-header">
+            <span>🚚 Live Delivery Orders</span>
+            <small id="refresh-indicator">Updating...</small>
+        </div>
+        <div class="delivery-body" id="delivery-orders-list">
+            <p style="text-align:center; color:#777; font-size:0.85rem; margin:10px 0;">Checking for incoming orders...</p>
         </div>
     </div>
 
     <script>
-        const NOTION_TOKEN = "ntn_b71251085285F0zyxLyBuRjvgzBleNjZmfpa40ZxggK9c4";
-        const DATABASE_ID = "3a11a8b0873080c8b274fb20867d2b85";
-        
-        // Notion Endpoint for reading/querying database rows
-        const QUERY_URL = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`);
-        const UPDATE_URL_BASE = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages/");
+        const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
+        const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
+        const INVENTORY_DB_ID = "3aa1a8b08730800496e5ffc6fec7aead";
 
-        async function fetchNotionOrders() {
+        const PROXY_POST = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+        const PROXY_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
+        const PROXY_ORDERS_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${ORDERS_DB_ID}/query`);
+
+        let inventory = {
+            "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false, notionPageId: null },
+            "Ice Cream": { price: 2.00, isDrink: false, stock: 10, notionPageId: null },
+            "Chips": { price: 1.25, isDrink: false, stock: 10, notionPageId: null },
+            "Zbar": { price: 1.00, isDrink: false, stock: 24, notionPageId: null }
+        };
+
+        let cart = {
+            "Normal Lemonade": 0, "Pink Lemonade": 0, "Oreo Milk Shake": 0,
+            "Rose Milk": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
+        };
+
+        let currentSubtotal = 0.00;
+        let registerTip = 0.00;
+
+        function setRegisterTip(amount, btnElement) {
+            registerTip = amount;
+            document.getElementById('custom-tip-btn').innerText = "Custom";
+            const buttons = document.querySelectorAll('.tip-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            updateRegisterUI();
+        }
+
+        function promptCustomRegisterTip(btnElement) {
+            let input = prompt("Enter custom tip amount ($):", "1.50");
+            if (input !== null) {
+                let val = parseFloat(input);
+                if (!isNaN(val) && val >= 0) {
+                    registerTip = val;
+                    btnElement.innerText = `$${val.toFixed(2)}`;
+                    const buttons = document.querySelectorAll('.tip-btn');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    btnElement.classList.add('active');
+                    updateRegisterUI();
+                } else {
+                    alert("Please enter a valid tip amount.");
+                }
+            }
+        }
+
+        function renderRegisterMenu() {
+            const container = document.getElementById('register-menu');
+            container.innerHTML = '';
+            for (let item in inventory) {
+                let details = inventory[item];
+                let currentQty = cart[item] || 0;
+                let stockText = details.isDrink ? 
+                    (details.outOfStock ? '<span style="color:red">Out</span>' : '<span style="color:green">In Stock</span>') : 
+                    `Stock: ${details.stock}`;
+                
+                let isSoldOut = details.outOfStock || (!details.isDrink && details.stock <= 0);
+
+                container.innerHTML += `
+                    <div class="menu-item">
+                        <h3>${item}</h3>
+                        <p class="price">$${details.price.toFixed(2)}</p>
+                        <div class="stock-tag">${stockText}</div>
+                        <div class="btn-group">
+                            <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
+                            <span style="font-weight:bold; line-height:30px;">${currentQty}</span>
+                            <button class="btn" onclick="addToCart('${item}')" ${isSoldOut || (!details.isDrink && currentQty >= details.stock) ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchLiveStock() {
             try {
-                const response = await fetch(QUERY_URL, {
+                const response = await fetch(PROXY_QUERY, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${NOTION_TOKEN}`,
-                        'Notion-Version': '2022-06-28',
-                        'Content-Type': 'application/json'
+                    headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    data.results.forEach(row => {
+                        let props = row.properties;
+                        let itemName = props["Item"]?.title[0]?.text?.content;
+                        let status = props["Status"]?.select?.name || props["Status"]?.status?.name || props["Status"]?.rich_text[0]?.text?.content;
+                        let numStock = props["StockCount"]?.number;
+
+                        if (itemName && inventory[itemName]) {
+                            inventory[itemName].notionPageId = row.id;
+                            if (status === "Out of Stock") inventory[itemName].outOfStock = true;
+                            if (status === "In Stock") inventory[itemName].outOfStock = false;
+                            if (numStock !== undefined && numStock !== null) inventory[itemName].stock = numStock;
+                        }
+                    });
+                    renderRegisterMenu();
+                }
+            } catch (err) { console.log("Notion sync quiet error."); }
+        }
+
+        function addToCart(item) {
+            cart[item]++;
+            renderRegisterMenu();
+            updateRegisterUI();
+        }
+
+        function removeFromCart(item) {
+            if (cart[item] > 0) {
+                cart[item]--;
+                renderRegisterMenu();
+                updateRegisterUI();
+            }
+        }
+
+        function updateRegisterUI() {
+            const list = document.getElementById('cart-list');
+            const totalDisplay = document.getElementById('total-due');
+            const btn = document.getElementById('complete-sale-btn');
+            
+            list.innerHTML = '';
+            currentSubtotal = 0;
+            let hasItems = false;
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    hasItems = true;
+                    let cost = cart[item] * inventory[item].price;
+                    currentSubtotal += cost;
+                    list.innerHTML += `<li><span>${item} x${cart[item]}</span> <strong>$${cost.toFixed(2)}</strong></li>`;
+                }
+            }
+
+            if (registerTip > 0 && hasItems) {
+                list.innerHTML += `<li><span>Tip</span> <strong>$${registerTip.toFixed(2)}</strong></li>`;
+            }
+
+            if (!hasItems) {
+                list.innerHTML = '<li style="color: #777;">Tap + on items to build order</li>';
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+            }
+
+            let finalTotal = currentSubtotal + registerTip;
+            totalDisplay.innerText = finalTotal.toFixed(2);
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const cashInput = parseFloat(document.getElementById('cash-given').value);
+            const changeDisplay = document.getElementById('change-due');
+            const breakdownDisplay = document.getElementById('change-breakdown');
+            let finalTotal = currentSubtotal + registerTip;
+            
+            if (!isNaN(cashInput) && finalTotal > 0) {
+                let change = parseFloat((cashInput - finalTotal).toFixed(2));
+                if (change >= 0) {
+                    changeDisplay.innerText = `Change: $${change.toFixed(2)}`;
+                    changeDisplay.style.color = "#28a745";
+                    
+                    let breakdownStr = getDenominationBreakdown(change);
+                    if (breakdownStr) {
+                        breakdownDisplay.innerText = "Give: " + breakdownStr;
+                        breakdownDisplay.style.display = "block";
+                    } else {
+                        breakdownDisplay.style.display = "none";
                     }
+                } else {
+                    changeDisplay.innerText = `Still owes: $${Math.abs(change).toFixed(2)}`;
+                    changeDisplay.style.color = "#d9534f";
+                    breakdownDisplay.style.display = "none";
+                }
+            } else {
+                changeDisplay.innerText = `Change: $0.00`;
+                changeDisplay.style.color = "#0088ff";
+                breakdownDisplay.style.display = "none";
+            }
+        }
+
+        function getDenominationBreakdown(amount) {
+            let cents = Math.round(amount * 100);
+            if (cents <= 0) return "Exact Change!";
+
+            const denoms = [
+                { name: "$20 bill", val: 2000 },
+                { name: "$10 bill", val: 1000 },
+                { name: "$5 bill", val: 500 },
+                { name: "$1 bill", val: 100 },
+                { name: "Quarter", val: 25 },
+                { name: "Dime", val: 10 },
+                { name: "Nickel", val: 5 },
+                { name: "Penny", val: 1 }
+            ];
+
+            let parts = [];
+            for (let d of denoms) {
+                let count = Math.floor(cents / d.val);
+                if (count > 0) {
+                    let label = d.name;
+                    if (count > 1) {
+                        if (label === "Penny") label = "Pennies";
+                        else label += "s";
+                    }
+                    parts.push(`${count} ${label}`);
+                    cents %= d.val;
+                }
+            }
+            return parts.join(", ");
+        }
+
+        async function updateNotionInventoryStock(itemName, newStock) {
+            let itemDetails = inventory[itemName];
+            if (!itemDetails || !itemDetails.notionPageId) return;
+
+            const pageUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/pages/${itemDetails.notionPageId}`);
+            let updatePayload = { properties: { "StockCount": { number: newStock } } };
+            if (newStock <= 0) updatePayload.properties["Status"] = { status: { name: "Out of Stock" } };
+
+            try {
+                await fetch(pageUrl, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
+            } catch (err) { console.error("Stock update failed", err); }
+        }
+
+        async function completeWalkupSale() {
+            const btn = document.getElementById('complete-sale-btn');
+            btn.disabled = true;
+            btn.innerText = "Logging Sale...";
+
+            let orderItems = [];
+            let itemsToUpdateStock = [];
+
+            for (let item in cart) {
+                if (cart[item] > 0) {
+                    orderItems.push(`${item} (${cart[item]})`);
+                    if (!inventory[item].isDrink) {
+                        inventory[item].stock -= cart[item];
+                        itemsToUpdateStock.push({ name: item, newStock: inventory[item].stock });
+                    }
+                }
+            }
+
+            if (registerTip > 0) {
+                orderItems.push(`Tip ($${registerTip.toFixed(2)})`);
+            }
+
+            let grandTotal = parseFloat((currentSubtotal + registerTip).toFixed(2));
+
+            const notionData = {
+                parent: { database_id: ORDERS_DB_ID },
+                properties: {
+                    "Name": { title: [{ text: { content: "Walk-Up Customer 🏃" } }] },
+                    "Address": { rich_text: [{ text: { content: "In-Person Stand" } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Total Due": { number: grandTotal },
+                    "Status": { rich_text: [{ text: { content: "Completed ✅" } }] }
+                }
+            };
+
+            try {
+                let response = await fetch(PROXY_POST, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(notionData)
+                });
+
+                if (response.ok) {
+                    for (let snack of itemsToUpdateStock) {
+                        await updateNotionInventoryStock(snack.name, snack.newStock);
+                    }
+
+                    alert(`✅ Sale complete! Total: $${grandTotal.toFixed(2)}`);
+
+                    for (let item in inventory) { cart[item] = 0; }
+                    registerTip = 0.00;
+                    document.getElementById('cash-given').value = '';
+                    
+                    // Reset tip buttons display
+                    document.getElementById('custom-tip-btn').innerText = "Custom";
+                    const tipBtns = document.querySelectorAll('.tip-btn');
+                    tipBtns.forEach(b => b.classList.remove('active'));
+                    tipBtns[0].classList.add('active');
+
+                    renderRegisterMenu();
+                    updateRegisterUI();
+                } else {
+                    alert("⚠️ Error saving sale to Notion.");
+                }
+            } catch (err) { alert("⚠️ Connection error."); }
+
+            btn.innerText = "✅ Complete Walk-up Sale";
+        }
+
+        async function fetchDeliveryOrders() {
+            const container = document.getElementById('delivery-orders-list');
+            const indicator = document.getElementById('refresh-indicator');
+            indicator.innerText = "Syncing...";
+
+            try {
+                const response = await fetch(PROXY_ORDERS_QUERY, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('sync-status').innerText = "🟢 Connected Live to Notion database";
-                    document.getElementById('sync-status').style.color = "#4caf50";
-                    renderOrders(data.results);
+                    let pendingOrders = data.results.filter(row => {
+                        let status = row.properties["Status"]?.rich_text[0]?.text?.content || row.properties["Status"]?.status?.name || "";
+                        return status.includes("Pending") || status.includes("Delivery");
+                    });
+
+                    if (pendingOrders.length === 0) {
+                        container.innerHTML = `<p style="text-align:center; color:#28a745; font-size:0.85rem; margin:10px 0;">🎉 No pending deliveries!</p>`;
+                    } else {
+                        container.innerHTML = '';
+                        pendingOrders.forEach(order => {
+                            let props = order.properties;
+                            let name = props["Name"]?.title[0]?.text?.content || "Customer";
+                            let address = props["Address"]?.rich_text[0]?.text?.content || "No address";
+                            let items = props["Items"]?.rich_text[0]?.text?.content || "";
+                            let total = props["Total Due"]?.number || 0.00;
+                            let createdTime = new Date(order.created_time);
+
+                            let minutesAgo = Math.floor((new Date() - createdTime) / 60000);
+
+                            container.innerHTML += `
+                                <div class="delivery-card">
+                                    <span class="time-badge">${minutesAgo}m ago</span>
+                                    <strong>${name}</strong> ($${total.toFixed(2)})<br>
+                                    📍 <em>${address}</em><br>
+                                    🍋 ${items}
+                                </div>
+                            `;
+                        });
+                    }
                 }
-            } catch (e) {
-                document.getElementById('sync-status').innerText = "❌ Connection Error";
-                console.error(e);
-            }
-        }
-
-        function renderOrders(notionRows) {
-            const orderBody = document.getElementById('admin-orders');
-            orderBody.innerHTML = '';
-            let totalRev = 0;
-
-            notionRows.forEach(row => {
-                const props = row.properties;
-                const pageId = row.id;
-
-                // Extract data safely based on Notion data types
-                const name = props.Name?.title[0]?.text?.content || "No Name";
-                const address = props.Address?.rich_text[0]?.text?.content || "No Address";
-                const items = props.Items?.rich_text[0]?.text?.content || "None";
-                const totalDue = props["Total Due"]?.number || 0;
-                const status = props.Status?.rich_text[0]?.text?.content || "Pending Delivery 🚚";
-
-                totalRev += totalDue;
-
-                orderBody.innerHTML += `
-                    <tr>
-                        <td><strong>${name}</strong></td>
-                        <td>${address}</td>
-                        <td>${items}</td>
-                        <td>$${totalDue.toFixed(2)}</td>
-                        <td>
-                            <button onclick="toggleStatus('${pageId}', '${status}')" class="btn" style="font-size:0.85rem;">
-                                ${status}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('total-revenue').innerText = totalRev.toFixed(2);
-        }
-
-        async function toggleStatus(pageId, currentStatus) {
-            const nextStatus = currentStatus.includes('Pending') ? "Completed Paid ✅" : "Pending Delivery 🚚";
-            const patchUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/pages/${pageId}`);
-
-            try {
-                await fetch(patchUrl, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${NOTION_TOKEN}`,
-                        'Notion-Version': '2022-06-28',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        properties: {
-                            "Status": { rich_text: [{ text: { content: nextStatus } }] }
-                        }
-                    })
-                });
-                fetchNotionOrders();
             } catch (err) {
-                alert("Failed to update status.");
+                container.innerHTML = `<p style="text-align:center; color:red; font-size:0.8rem;">Could not load deliveries.</p>`;
             }
+            indicator.innerText = "Live";
         }
 
-        fetchNotionOrders();
-        
+        window.onload = function() {
+            renderRegisterMenu();
+            fetchLiveStock();
+            fetchDeliveryOrders();
+            setInterval(fetchDeliveryOrders, 10000);
+        };
     </script>
 </body>
 </html>
