@@ -207,12 +207,13 @@
         const PROXY_POST = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
         const PROXY_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
 
-        // Defaults set directly inside JavaScript
+        // Added "Ice Cream" to default inventory items!
         let inventory = {
             "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
             "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false },
+            "Ice Cream": { price: 2.00, isDrink: false, stock: 10 },
             "Chips": { price: 1.25, isDrink: false, stock: 10 },
             "Zbar": { price: 1.00, isDrink: false, stock: 24 }
         };
@@ -222,6 +223,7 @@
             "Pink Lemonade": 0,
             "Oreo Milk Shake": 0,
             "Rose Milk": 0,
+            "Ice Cream": 0,
             "Chips": 0,
             "Zbar": 0
         };
@@ -301,7 +303,7 @@
                             }
                         }
                     });
-                    renderCustomerMenu(); // Re-render only if sync succeeds
+                    renderCustomerMenu();
                 }
             } catch (err) {
                 console.log("Notion sync quiet error, keeping local menu defaults.");
@@ -426,7 +428,6 @@
 
             let finalBill = parseFloat((itemTotal + 1.50 + tipAmount).toFixed(2));
 
-            // Flexible payload: tries rich_text format for Status
             const notionData = {
                 parent: { database_id: ORDERS_DB_ID },
                 properties: {
@@ -449,7 +450,6 @@
                     body: JSON.stringify(notionData)
                 });
 
-                // If Notion rejects rich_text Status, retry using native Status object format
                 if (!response.ok) {
                     notionData.properties["Status"] = { status: { name: "Pending Delivery 🚚" } };
                     response = await fetch(PROXY_POST, {
@@ -496,7 +496,6 @@
             btn.innerText = "Send Order to Stand!";
         }
 
-        // Render default menu IMMEDIATELY, then sync with Notion in the background
         window.onload = function() {
             renderCustomerMenu();
             fetchLiveStockFromNotion();
