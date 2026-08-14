@@ -324,6 +324,7 @@
             "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
             "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false },
+            "Popsicles": { price: 1.00, isDrink: false, stock: 15 },
             "Ice Cream": { price: 2.00, isDrink: false, stock: 18 },
             "Chips": { price: 1.25, isDrink: false, stock: 10 },
             "Zbar": { price: 1.00, isDrink: false, stock: 18 }
@@ -331,7 +332,7 @@
 
         let cart = {
             "Normal Lemonade": 0, "Pink Lemonade": 0, "Oreo Milk Shake": 0,
-            "Rose Milk": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
+            "Rose Milk": 0, "Popsicles": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
         };
 
         let tipAmount = 0.00;
@@ -352,7 +353,8 @@
                 container.innerHTML += `
                     <div class="menu-item">
                         <div>
-                            <h3>${item}</h3>                             <p class="price">$${details.price.toFixed(2)}</p>
+                            <h3>${item}</h3>
+                            <p class="price">$${details.price.toFixed(2)}</p>
                             <div class="stock-tag">${stockText}</div>
                         </div>
                         <div class="btn-group">
@@ -574,4 +576,33 @@
                 });
 
                 if (response.ok) {
-                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal
+                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
+                    window.open(cashAppUrl, '_blank');
+
+                    alert(`🎉 Order placed! Opening Cash App for $${finalTotal.toFixed(2)} to $${CASH_APP_TAG}.`);
+                    
+                    for (let item in cart) { cart[item] = 0; }
+                    tipAmount = 0.00;
+                    document.getElementById('cust-name').value = '';
+                    document.getElementById('cust-address').value = '';
+                    document.getElementById('claim-chips-checkbox').checked = false;
+                    
+                    renderMenu();
+                    updateCartUI();
+                } else {
+                    alert("⚠️ Couldn't place order. Please try again.");
+                }
+            } catch (err) {
+                alert("⚠️ Connection error.");
+            }
+
+            btn.innerText = "💚 Place Order & Pay on Cash App";
+        }
+
+        window.onload = function() {
+            renderMenu();
+            fetchLiveStock();
+        };
+    </script>
+</body>
+</html>
