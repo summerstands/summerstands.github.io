@@ -8,6 +8,7 @@
         :root {
             --primary: #ffcc00;
             --secondary: #ff6600;
+            --cashapp: #00D632;
             --dark: #333;
         }
         body {
@@ -177,7 +178,7 @@
         .total-box h2 { margin: 0; color: var(--secondary); font-size: 2rem; }
 
         .submit-btn {
-            background-color: #28a745;
+            background-color: var(--cashapp);
             color: white;
             font-size: 1.1rem;
             font-weight: bold;
@@ -186,6 +187,10 @@
             padding: 12px;
             width: 100%;
             cursor: pointer;
+            transition: 0.2s;
+        }
+        .submit-btn:hover {
+            background-color: #00b82b;
         }
         .submit-btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
@@ -248,7 +253,7 @@
             </div>
 
             <button type="button" id="place-order-btn" class="submit-btn" onclick="placeOrder()" disabled>
-                🚚 Place Delivery Order
+                💚 Place Order & Pay on Cash App
             </button>
         </div>
     </div>
@@ -259,6 +264,7 @@
     </footer>
 
     <script>
+        const CASH_APP_TAG = "OJuice17";
         const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
         const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
         const INVENTORY_DB_ID = "3aa1a8b08730800496e5ffc6fec7aead";
@@ -445,7 +451,7 @@
             }
 
             btn.disabled = true;
-            btn.innerText = "Placing Order...";
+            btn.innerText = "Placing Order & Opening Cash App...";
 
             let orderItems = [];
             for (let item in cart) {
@@ -479,7 +485,11 @@
                 });
 
                 if (response.ok) {
-                    alert("🎉 Order placed successfully! Our crew will deliver it shortly.");
+                    // Open Cash App link directly to $OJuice17 with the total amount
+                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
+                    window.open(cashAppUrl, '_blank');
+
+                    alert(`🎉 Order placed! Cash App is opening now for $${finalTotal.toFixed(2)} to $${CASH_APP_TAG}.`);
                     
                     for (let item in cart) { cart[item] = 0; }
                     document.getElementById('cust-name').value = '';
@@ -495,7 +505,7 @@
                 alert("⚠️ Connection error.");
             }
 
-            btn.innerText = "🚚 Place Delivery Order";
+            btn.innerText = "💚 Place Order & Pay on Cash App";
         }
 
         window.onload = function() {
