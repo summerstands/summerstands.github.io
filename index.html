@@ -132,6 +132,41 @@
             font-size: 0.9rem !important;
         }
 
+        /* Tip Box Styling */
+        .tip-box {
+            background: #fff8e1;
+            border: 2px dashed #ffcc00;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .tip-box p {
+            margin: 5px 0 10px 0;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        .tip-options {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .tip-btn {
+            background-color: white;
+            border: 2px solid #ffcc00;
+            padding: 6px 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tip-btn.active {
+            background-color: #ff6600;
+            color: white;
+            border-color: #ff6600;
+        }
+
         .free-chips-box {
             background: #e8f5e9;
             border: 1px dashed #28a745;
@@ -237,6 +272,18 @@
                 </label>
             </div>
 
+            <div id="tip-section" class="tip-box" style="display: none;">
+                <strong style="font-size: 1rem; color: #ff6600;">💛 Add a Tip for the Stand Crew?</strong>
+                <p>Tips support the local crew and help keep prices low!</p>
+                <div class="tip-options">
+                    <button type="button" class="tip-btn active" onclick="setTip(0, this)">No Tip</button>
+                    <button type="button" class="tip-btn" onclick="setTip(0.50, this)">$0.50</button>
+                    <button type="button" class="tip-btn" onclick="setTip(1.00, this)">$1.00</button>
+                    <button type="button" class="tip-btn" onclick="setTip(2.00, this)">$2.00</button>
+                    <button type="button" class="tip-btn" id="custom-tip-btn" onclick="promptCustomTip(this)">Custom</button>
+                </div>
+            </div>
+
             <div class="form-group" style="margin-top: 15px;">
                 <label for="cust-name">Name *</label>
                 <input type="text" id="cust-name" placeholder="Your Name">
@@ -287,6 +334,8 @@
             "Rose Milk": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
         };
 
+        let tipAmount = 0.00;
+
         function renderMenu() {
             const container = document.getElementById('menu-container');
             container.innerHTML = '';
@@ -303,8 +352,7 @@
                 container.innerHTML += `
                     <div class="menu-item">
                         <div>
-                            <h3>${item}</h3>
-                            <p class="price">$${details.price.toFixed(2)}</p>
+                            <h3>${item}</h3>                             <p class="price">$${details.price.toFixed(2)}</p>
                             <div class="stock-tag">${stockText}</div>
                         </div>
                         <div class="btn-group">
@@ -356,12 +404,39 @@
             }
         }
 
+        function setTip(amount, btnElement) {
+            tipAmount = amount;
+            document.getElementById('custom-tip-btn').innerText = "Custom";
+            const buttons = document.querySelectorAll('.tip-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            updateCartUI();
+        }
+
+        function promptCustomTip(btnElement) {
+            let input = prompt("Enter custom tip amount ($):", "1.00");
+            if (input !== null) {
+                let val = parseFloat(input);
+                if (!isNaN(val) && val >= 0) {
+                    tipAmount = val;
+                    btnElement.innerText = `$${val.toFixed(2)}`;
+                    const buttons = document.querySelectorAll('.tip-btn');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    btnElement.classList.add('active');
+                    updateCartUI();
+                } else {
+                    alert("Please enter a valid tip amount.");
+                }
+            }
+        }
+
         function updateCartUI() {
             const list = document.getElementById('cart-list');
             const totalDisplay = document.getElementById('total-due');
             const orderBtn = document.getElementById('place-order-btn');
             const freeChipsBox = document.getElementById('free-chips-box');
             const claimCheckbox = document.getElementById('claim-chips-checkbox');
+            const tipSection = document.getElementById('tip-section');
 
             list.innerHTML = '';
             let rawSubtotal = 0;
@@ -389,10 +464,13 @@
                 list.innerHTML = '<li style="color: #777; text-align: center; display: block;">No items added yet. Use the buttons above to build your order!</li>';
                 orderBtn.disabled = true;
                 freeChipsBox.style.display = 'none';
+                tipSection.style.display = 'none';
                 claimCheckbox.checked = false;
                 totalDisplay.innerText = '0.00';
                 return;
             }
+
+            tipSection.style.display = 'block';
 
             let discount = 0;
 
@@ -435,7 +513,14 @@
                 claimCheckbox.checked = false;
             }
 
-            totalDisplay.innerText = subtotalAfterDiscount.toFixed(2);
+            // Add Tip to Cart List Display
+            if (tipAmount > 0) {
+                list.innerHTML += `<li style="color: #ff6600; font-weight: bold;"><span>💛 Tip for Crew</span> <span>+$${tipAmount.toFixed(2)}</span></li>`;
+            }
+
+            let finalTotal = subtotalAfterDiscount + tipAmount;
+
+            totalDisplay.innerText = finalTotal.toFixed(2);
             orderBtn.disabled = false;
         }
 
@@ -464,6 +549,10 @@
                 orderItems.push("🎁 Claimed FREE Chips");
             }
 
+            if (tipAmount > 0) {
+                orderItems.push(`💛 Tip ($${tipAmount.toFixed(2)})`);
+            }
+
             let finalTotal = parseFloat(document.getElementById('total-due').innerText);
 
             const notionData = {
@@ -485,33 +574,4 @@
                 });
 
                 if (response.ok) {
-                    // Open Cash App link directly to $OJuice17 with the total amount
-                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
-                    window.open(cashAppUrl, '_blank');
-
-                    alert(`🎉 Order placed! Cash App is opening now for $${finalTotal.toFixed(2)} to $${CASH_APP_TAG}.`);
-                    
-                    for (let item in cart) { cart[item] = 0; }
-                    document.getElementById('cust-name').value = '';
-                    document.getElementById('cust-address').value = '';
-                    document.getElementById('claim-chips-checkbox').checked = false;
-                    
-                    renderMenu();
-                    updateCartUI();
-                } else {
-                    alert("⚠️ Couldn't place order. Please try again.");
-                }
-            } catch (err) {
-                alert("⚠️ Connection error.");
-            }
-
-            btn.innerText = "💚 Place Order & Pay on Cash App";
-        }
-
-        window.onload = function() {
-            renderMenu();
-            fetchLiveStock();
-        };
-    </script>
-</body>
-</html>
+                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal
