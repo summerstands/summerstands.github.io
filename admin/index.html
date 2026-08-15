@@ -166,6 +166,30 @@
             border-bottom: 1px solid #eee;
         }
 
+        .deal-line {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .free-chips-box {
+            background: #e8f5e9;
+            border: 1px dashed #28a745;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .free-chips-box label {
+            cursor: pointer;
+            font-weight: bold;
+            color: #1b5e20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         .tip-box {
             background: #fff8e1;
             padding: 10px;
@@ -267,6 +291,13 @@
             <ul id="admin-cart-list" class="cart-list">
                 <li style="color: #777;">No items in order</li>
             </ul>
+
+            <div id="free-chips-box" class="free-chips-box">
+                <label>
+                    <input type="checkbox" id="claim-chips-checkbox" onchange="updateAdminCartUI()">
+                    🎁 Apply FREE Bag of Chips ($5+ Deal)
+                </label>
+            </div>
 
             <div class="tip-box">
                 <small style="font-weight: bold;">ADD TIP</small>
@@ -476,33 +507,87 @@
             const list = document.getElementById('admin-cart-list');
             const totalDisplay = document.getElementById('admin-total-due');
             const submitBtn = document.getElementById('complete-sale-btn');
+            const freeChipsBox = document.getElementById('free-chips-box');
+            const claimCheckbox = document.getElementById('claim-chips-checkbox');
 
             list.innerHTML = '';
-            let subtotal = 0;
+            let rawSubtotal = 0;
+            let totalDrinks = 0;
+            let totalSnacks = 0;
             let hasItems = false;
 
             for (let item in cart) {
                 if (cart[item] > 0) {
                     hasItems = true;
                     let cost = cart[item] * inventory[item].price;
-                    subtotal += cost;
+                    rawSubtotal += cost;
+
+                    if (inventory[item].isDrink) {
+                        totalDrinks += cart[item];
+                    } else {
+                        totalSnacks += cart[item];
+                    }
+
                     list.innerHTML += `<li><span>${item} x${cart[item]}</span> <strong>$${cost.toFixed(2)}</strong></li>`;
                 }
+            }
+
+            if (!hasItems) {
+                list.innerHTML = '<li style="color: #777;">No items in order</li>';
+                submitBtn.disabled = true;
+                freeChipsBox.style.display = 'none';
+                claimCheckbox.checked = false;
+                totalDisplay.innerText = '0.00';
+                calculateChange();
+                return;
+            }
+
+            let discount = 0;
+
+            // Deal 1: Drink + Snack Combo Deal ($0.25 Off)
+            if (totalDrinks >= 1 && totalSnacks >= 1) {
+                discount += 0.25;
+                list.innerHTML += `<li class="deal-line"><span>🍿 Drink + Snack Combo</span> <span>-$0.25</span></li>`;
+            }
+
+            // Deal 2: Buy 3 Drinks, 4th Drink 50% Off
+            if (totalDrinks >= 4) {
+                let eligibleDiscountCount = Math.floor(totalDrinks / 4);
+                let drinkPrices = [];
+                for (let item in cart) {
+                    if (inventory[item].isDrink && cart[item] > 0) {
+                        for (let i = 0; i < cart[item]; i++) drinkPrices.push(inventory[item].price);
+                    }
+                }
+                drinkPrices.sort((a, b) => a - b);
+                
+                let groupDiscount = 0;
+                for (let i = 0; i < eligibleDiscountCount; i++) {
+                    groupDiscount += drinkPrices[i] * 0.5;
+                }
+
+                discount += groupDiscount;
+                list.innerHTML += `<li class="deal-line"><span>🥤 Buy 3, Get 4th 50% Off</span> <span>-$${groupDiscount.toFixed(2)}</span></li>`;
+            }
+
+            let subtotalAfterDiscount = Math.max(0, rawSubtotal - discount);
+
+            // Deal 3: Optional Free Chips for Orders $5.00+
+            if (subtotalAfterDiscount >= 5.00) {
+                freeChipsBox.style.display = 'block';
+                if (claimCheckbox.checked) {
+                    list.innerHTML += `<li class="deal-line"><span>🎁 Free Bag of Chips ($5+)</span> <span>FREE</span></li>`;
+                }
+            } else {
+                freeChipsBox.style.display = 'none';
+                claimCheckbox.checked = false;
             }
 
             if (currentTip > 0) {
                 list.innerHTML += `<li style="color: #28a745; font-weight: bold;"><span>Tip</span> <span>+$${currentTip.toFixed(2)}</span></li>`;
             }
 
-            if (!hasItems) {
-                list.innerHTML = '<li style="color: #777;">No items in order</li>';
-                submitBtn.disabled = true;
-                totalDisplay.innerText = '0.00';
-                calculateChange();
-                return;
-            }
-
-            let total = subtotal + currentTip;
+            let total = subtotalAfterDiscount + currentTip;
             totalDisplay.innerText = total.toFixed(2);
             submitBtn.disabled = false;
             calculateChange();
@@ -544,6 +629,8 @@
 
         async function completeWalkUpSale() {
             const btn = document.getElementById('complete-sale-btn');
+            const claimChips = document.getElementById('claim-chips-checkbox').checked;
+
             btn.disabled = true;
             btn.innerText = "Processing...";
 
@@ -554,6 +641,7 @@
                 }
             }
 
+            if (claimChips) orderItems.push("🎁 FREE Chips");
             if (currentTip > 0) {
                 orderItems.push(`Tip ($${currentTip.toFixed(2)})`);
             }
@@ -585,6 +673,7 @@
                     currentTip = 0;
                     document.getElementById('custom-tip').value = '';
                     document.getElementById('cash-tendered').value = '';
+                    document.getElementById('claim-chips-checkbox').checked = false;
                     
                     document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
                     document.querySelector('.tip-btn').classList.add('active');
