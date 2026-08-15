@@ -323,7 +323,7 @@
                     💚 Pay with Cash App ($OJuice17)
                 </button>
                 <button type="button" class="submit-btn btn-venmo pay-btn" onclick="placeOrder('Venmo')" disabled>
-                    💙 Pay with Venmo (@OJuice17)
+                    💙 Pay with Venmo (@Ravin-Mangtani)
                 </button>
                 <button type="button" class="submit-btn btn-zelle pay-btn" onclick="placeOrder('Zelle')" disabled>
                     💜 Pay with Zelle
@@ -339,8 +339,8 @@
 
     <script>
         const CASH_APP_TAG = "OJuice17";
-        const VENMO_TAG = "OJuice17";
-        const ZELLE_INFO = "708-XXX-XXXX"; // Replace with your Zelle phone/email
+        const VENMO_TAG = "Ravin-Mangtani";
+        const ZELLE_INFO = "YOUR_ZELLE_EMAIL_OR_PHONE"; // Replace this with your Zelle info
 
         const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
         const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
@@ -599,7 +599,6 @@
                 });
 
                 if (response.ok) {
-                    // Open payment app depending on selection
                     if (paymentMethod === 'Cash App') {
                         window.open(`https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`, '_blank');
                     } else if (paymentMethod === 'Venmo') {
