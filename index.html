@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summer Stands</title>
+    <title>Summer Stands - Order Online</title>
     <style>
         :root {
             --primary: #ffcc00;
             --secondary: #ff6600;
-            --cashapp: #00D632;
-            --venmo: #008CFF;
             --dark: #333;
         }
         body {
@@ -21,160 +19,105 @@
         }
 
         header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, var(--secondary), #d9534f);
             color: white;
             text-align: center;
-            padding: 1.5rem;
+            padding: 1.5rem 1rem;
         }
-        header h1 { margin: 0; font-size: 2.2rem; }
-        header p { margin: 5px 0 0; opacity: 0.9; font-size: 1.1rem; }
+        header h1 { margin: 0; font-size: 2rem; }
+        header p { margin: 5px 0 0; opacity: 0.95; }
 
-        .container {
-            max-width: 900px;
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            max-width: 1200px;
             margin: 1.5rem auto;
-            padding: 0 1rem 40px 1rem;
+            padding: 0 1rem 100px 1rem;
         }
 
-        h2.section-title {
-            text-align: center;
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            color: var(--dark);
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
         }
 
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-bottom: 2rem;
+            gap: 15px;
         }
-
         .menu-item {
             background: white;
-            border-radius: 12px;
-            padding: 1.2rem;
+            border-radius: 10px;
+            padding: 1rem;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             border: 2px solid #e1e1e1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
+        .menu-item.sold-out {
+            opacity: 0.6;
+            background-color: #f9f9f9;
+        }
         .menu-item h3 { margin: 5px 0; font-size: 1.1rem; }
-        .price { font-weight: bold; color: var(--secondary); font-size: 1.2rem; margin: 5px 0; }
-        .stock-tag { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+        .price { font-weight: bold; color: var(--secondary); font-size: 1.1rem; margin: 5px 0; }
+        .stock-tag { font-size: 0.8rem; margin-bottom: 8px; font-weight: bold; }
+        .stock-tag.in { color: green; }
+        .stock-tag.out { color: red; }
 
         .btn-group {
             display: flex;
             gap: 8px;
             justify-content: center;
-            align-items: center;
+            margin-bottom: 8px;
         }
         .btn {
             background-color: var(--primary);
             border: none;
-            padding: 6px 14px;
+            padding: 8px 14px;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 1.1rem;
         }
         .btn:disabled { background-color: #ddd; cursor: not-allowed; }
         .btn-danger { background-color: #ff4444; color: white; }
 
-        /* Deals Section Below Menu */
-        .deals-card {
-            background: #fff8e1;
-            border: 2px dashed #ffcc00;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-        .deals-card h3 { margin: 0 0 8px 0; color: var(--secondary); font-size: 1.2rem; }
-        .deals-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-
-        /* Order Details Section */
         .cart-panel {
             background: white;
-            padding: 1.8rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            max-width: 600px;
-            margin: 0 auto;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            height: fit-content;
         }
-
         .cart-list {
             list-style: none;
             padding: 0;
-            margin: 15px 0;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
         }
         .cart-list li {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid #eee;
-            font-size: 1rem;
         }
 
         .deal-line {
             color: #28a745;
             font-weight: bold;
-            font-size: 0.9rem !important;
-        }
-
-        /* Tip Box Styling */
-        .tip-box {
-            background: #fff8e1;
-            border: 2px dashed #ffcc00;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 15px 0;
-            text-align: center;
-        }
-        .tip-box p {
-            margin: 5px 0 10px 0;
-            font-size: 0.85rem;
-            color: #555;
-        }
-        .tip-options {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .tip-btn {
-            background-color: white;
-            border: 2px solid #ffcc00;
-            padding: 6px 12px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .tip-btn.active {
-            background-color: #ff6600;
-            color: white;
-            border-color: #ff6600;
+            font-size: 0.9rem;
         }
 
         .free-chips-box {
             background: #e8f5e9;
             border: 1px dashed #28a745;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 12px 0;
-            font-size: 0.9rem;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 0.85rem;
             display: none;
         }
         .free-chips-box label {
@@ -183,11 +126,11 @@
             color: #1b5e20;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .form-group {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             text-align: left;
         }
         .form-group label {
@@ -197,192 +140,144 @@
             margin-bottom: 4px;
         }
         .form-group input {
-            width: 95%;
-            padding: 10px;
+            width: 93%;
+            padding: 8px;
+            font-size: 0.95rem;
             border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 1rem;
+            border-radius: 5px;
         }
 
         .total-box {
             background: #fff8e1;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             margin: 15px 0;
             text-align: center;
         }
         .total-box h2 { margin: 0; color: var(--secondary); font-size: 2rem; }
 
-        /* Payment Buttons Grid */
-        .payment-title {
-            text-align: center;
-            font-size: 0.9rem;
-            font-weight: bold;
-            margin: 15px 0 8px 0;
-            color: #555;
-        }
-        .payment-btns {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
         .submit-btn {
+            background-color: #28a745;
             color: white;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 8px;
             padding: 12px;
             width: 100%;
             cursor: pointer;
-            transition: 0.2s;
         }
-        .btn-cashapp { background-color: var(--cashapp); }
-        .btn-cashapp:hover { background-color: #00b82b; }
-        .btn-venmo { background-color: var(--venmo); }
-        .btn-venmo:hover { background-color: #0077e6; }
-        .submit-btn:disabled { background-color: #ccc !important; cursor: not-allowed; }
-
-        footer {
-            text-align: center;
-            font-size: 0.8rem;
-            color: #777;
-            margin-top: 40px;
-            padding: 15px;
-            border-top: 1px solid #ddd;
-        }
+        .submit-btn:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Summer Stands</h1>
-        <p>Refreshing Bridgeview, One Cup at a Time!</p>
+        <h1>🍹 Summer Stands</h1>
+        <p>Place Your Order Online!</p>
     </header>
 
-    <div class="container">
-        <h2 class="section-title">Our Summer Menu</h2>
-        <div class="menu-grid" id="menu-container"></div>
-
-        <div class="deals-card">
-            <h3>🎉 Active Summer Deals</h3>
-            <ul>
-                <li>🎁 FREE Chips on $5.00+ orders</li>
-                <li>🍿 Drink + Snack Combo (Save $0.25)</li>
-                <li>🥤 Buy 3 Drinks, Get 4th 50% Off</li>
-            </ul>
+    <div class="layout">
+        <div>
+            <h2>Menu</h2>
+            <div class="menu-grid" id="customer-menu-container"></div>
         </div>
 
         <div class="cart-panel">
-            <h2 style="margin-top: 0; text-align: center;">Your Order Details</h2>
-            <ul id="cart-list" class="cart-list">
-                <li style="color: #777; text-align: center; display: block;">No items added yet. Use the buttons above to build your order!</li>
+            <h2>Your Order</h2>
+            
+            <div class="form-group">
+                <label for="cust-name">Your Name:</label>
+                <input type="text" id="cust-name" placeholder="First & Last Name">
+            </div>
+            
+            <div class="form-group">
+                <label for="cust-address">Delivery / House Address:</label>
+                <input type="text" id="cust-address" placeholder="House # or Stand Pickup">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+            <ul id="customer-cart-list" class="cart-list">
+                <li style="color: #777;">Your cart is empty</li>
             </ul>
 
             <div id="free-chips-box" class="free-chips-box">
                 <label>
-                    <input type="checkbox" id="claim-chips-checkbox" onchange="updateCartUI()">
-                    🎁 Claim FREE Bag of Chips ($5+ Deal)
+                    <input type="checkbox" id="claim-chips-checkbox" onchange="updateCustomerCartUI()">
+                    🎁 Add FREE Bag of Chips ($5+ Order Deal)
                 </label>
             </div>
 
-            <!-- Tip Section -->
-            <div id="tip-section" class="tip-box" style="display: none;">
-                <strong style="font-size: 1rem; color: #ff6600;">💛 Add a Tip for the Stand Crew?</strong>
-                <p>Tips support the local crew and help keep prices low!</p>
-                <div class="tip-options">
-                    <button type="button" class="tip-btn active" onclick="setTip(0, this)">No Tip</button>
-                    <button type="button" class="tip-btn" onclick="setTip(0.50, this)">$0.50</button>
-                    <button type="button" class="tip-btn" onclick="setTip(1.00, this)">$1.00</button>
-                    <button type="button" class="tip-btn" onclick="setTip(2.00, this)">$2.00</button>
-                    <button type="button" class="tip-btn" id="custom-tip-btn" onclick="promptCustomTip(this)">Custom</button>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="cust-name">Name *</label>
-                <input type="text" id="cust-name" placeholder="Your Name">
-            </div>
-
-            <div class="form-group">
-                <label for="cust-address">Delivery Address *</label>
-                <input type="text" id="cust-address" placeholder="123 Summer St">
-            </div>
-
             <div class="total-box">
-                <small>TOTAL DUE</small>
-                <h2>$<span id="total-due">0.00</span></h2>
+                <small>TOTAL</small>
+                <h2>$<span id="customer-total-due">0.00</span></h2>
             </div>
 
-            <div class="payment-title">SELECT PAYMENT METHOD TO PLACE ORDER:</div>
-            <div class="payment-btns">
-                <button type="button" class="submit-btn btn-cashapp pay-btn" onclick="placeOrder('Cash App')" disabled>
-                    💚 Pay with Cash App ($OJuice17)
-                </button>
-                <button type="button" class="submit-btn btn-venmo pay-btn" onclick="placeOrder('Venmo')" disabled>
-                    💙 Pay with Venmo (@Ravin-Mangtani)
-                </button>
-            </div>
+            <button type="button" id="place-order-btn" class="submit-btn" onclick="submitCustomerOrder()" disabled>
+                🚀 Submit Order
+            </button>
         </div>
     </div>
 
-    <footer>
-        <p>© 2026 Summer Stands. All Rights Reserved.</p>
-        <p>All sales are final upon delivery. We reserve the right to refuse service or cancel unverified delivery requests.</p>
-    </footer>
-
     <script>
-        const CASH_APP_TAG = "OJuice17";
-        const VENMO_TAG = "Ravin-Mangtani";
-
         const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
         const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
         const INVENTORY_DB_ID = "3aa1a8b08730800496e5ffc6fec7aead";
 
-        const NOTION_POST_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
-        const NOTION_QUERY_URL = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
+        const PROXY_POST = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+        const PROXY_QUERY = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
 
         let inventory = {
             "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
-            "Popsicles": { price: 1.50, isDrink: false, stock: 15 },
-            "Ice Cream": { price: 2.00, isDrink: false, stock: 18 },
-            "Chips": { price: 1.25, isDrink: false, stock: 10 },
-            "Zbar": { price: 1.00, isDrink: false, stock: 18 }
+            "Ice Cream": { price: 2.00, isDrink: false, stock: 18, outOfStock: false },
+            "Chips": { price: 1.25, isDrink: false, stock: 10, outOfStock: false },
+            "Rice Krispie Treat": { price: 1.00, isDrink: false, stock: 18, outOfStock: false }
         };
 
         let cart = {
             "Normal Lemonade": 0, "Pink Lemonade": 0, "Oreo Milk Shake": 0,
-            "Popsicles": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
+            "Ice Cream": 0, "Chips": 0, "Rice Krispie Treat": 0
         };
 
-        let tipAmount = 0.00;
+        function isItemOutOfStock(item) {
+            let details = inventory[item];
+            if (!details) return true;
+            if (details.outOfStock) return true;
+            if (!details.isDrink && typeof details.stock === 'number' && details.stock <= 0) return true;
+            return false;
+        }
 
-        function renderMenu() {
-            const container = document.getElementById('menu-container');
+        function renderCustomerMenu() {
+            const container = document.getElementById('customer-menu-container');
             container.innerHTML = '';
 
             for (let item in inventory) {
                 let details = inventory[item];
                 let currentQty = cart[item] || 0;
-                let isSoldOut = details.outOfStock || (!details.isDrink && details.stock <= 0);
+                let soldOut = isItemOutOfStock(item);
 
-                let stockText = details.isDrink ? 
-                    (details.outOfStock ? '<span style="color:red; font-weight:bold;">Out of Stock</span>' : '<span style="color:green; font-weight:bold;">In Stock</span>') : 
-                    `In Stock: ${details.stock}`;
+                let statusBadge = soldOut ? 
+                    '<div class="stock-tag out">Out of Stock</div>' : 
+                    '<div class="stock-tag in">Available</div>';
+
+                let canAdd = !soldOut && (details.isDrink || currentQty < details.stock);
 
                 container.innerHTML += `
-                    <div class="menu-item">
+                    <div class="menu-item ${soldOut ? 'sold-out' : ''}">
                         <div>
                             <h3>${item}</h3>
                             <p class="price">$${details.price.toFixed(2)}</p>
-                            <div class="stock-tag">${stockText}</div>
+                            ${statusBadge}
                         </div>
-                        <div class="btn-group">
-                            <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
-                            <span style="font-weight:bold; width:20px; inline-block; text-align:center;">${currentQty}</span>
-                            <button class="btn" onclick="addToCart('${item}')" ${isSoldOut || (!details.isDrink && currentQty >= details.stock) ? 'disabled' : ''}>+</button>
+                        <div>
+                            <div class="btn-group">
+                                <button class="btn btn-danger" onclick="removeFromCart('${item}')" ${currentQty <= 0 ? 'disabled' : ''}>-</button>
+                                <span style="font-weight:bold; line-height:30px;">${currentQty}</span>
+                                <button class="btn" onclick="addToCart('${item}')" ${!canAdd ? 'disabled' : ''}>+</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -391,7 +286,7 @@
 
         async function fetchLiveStock() {
             try {
-                const response = await fetch(NOTION_QUERY_URL, {
+                const response = await fetch(PROXY_QUERY, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' }
                 });
@@ -406,61 +301,44 @@
                         if (itemName && inventory[itemName]) {
                             if (status === "Out of Stock") inventory[itemName].outOfStock = true;
                             if (status === "In Stock") inventory[itemName].outOfStock = false;
-                            if (numStock !== undefined && numStock !== null) inventory[itemName].stock = numStock;
+                            if (numStock !== undefined && numStock !== null) {
+                                inventory[itemName].stock = numStock;
+                                if (numStock <= 0 && !inventory[itemName].isDrink) {
+                                    inventory[itemName].outOfStock = true;
+                                }
+                            }
                         }
                     });
-                    renderMenu();
+                    renderCustomerMenu();
                 }
             } catch (err) { console.log("Notion sync error"); }
         }
 
         function addToCart(item) {
-            cart[item]++;
-            renderMenu();
-            updateCartUI();
+            let details = inventory[item];
+            let currentQty = cart[item] || 0;
+            if (isItemOutOfStock(item)) return;
+            if (!details.isDrink && currentQty >= details.stock) return;
+
+            cart[item] = currentQty + 1;
+            renderCustomerMenu();
+            updateCustomerCartUI();
         }
 
         function removeFromCart(item) {
             if (cart[item] > 0) {
                 cart[item]--;
-                renderMenu();
-                updateCartUI();
+                renderCustomerMenu();
+                updateCustomerCartUI();
             }
         }
 
-        function setTip(amount, btnElement) {
-            tipAmount = amount;
-            document.getElementById('custom-tip-btn').innerText = "Custom";
-            const buttons = document.querySelectorAll('.tip-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-            updateCartUI();
-        }
-
-        function promptCustomTip(btnElement) {
-            let input = prompt("Enter custom tip amount ($):", "1.00");
-            if (input !== null) {
-                let val = parseFloat(input);
-                if (!isNaN(val) && val >= 0) {
-                    tipAmount = val;
-                    btnElement.innerText = `$${val.toFixed(2)}`;
-                    const buttons = document.querySelectorAll('.tip-btn');
-                    buttons.forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                    updateCartUI();
-                } else {
-                    alert("Please enter a valid tip amount.");
-                }
-            }
-        }
-
-        function updateCartUI() {
-            const list = document.getElementById('cart-list');
-            const totalDisplay = document.getElementById('total-due');
-            const payBtns = document.querySelectorAll('.pay-btn');
+        function updateCustomerCartUI() {
+            const list = document.getElementById('customer-cart-list');
+            const totalDisplay = document.getElementById('customer-total-due');
+            const submitBtn = document.getElementById('place-order-btn');
             const freeChipsBox = document.getElementById('free-chips-box');
             const claimCheckbox = document.getElementById('claim-chips-checkbox');
-            const tipSection = document.getElementById('tip-section');
 
             list.innerHTML = '';
             let rawSubtotal = 0;
@@ -485,23 +363,20 @@
             }
 
             if (!hasItems) {
-                list.innerHTML = '<li style="color: #777; text-align: center; display: block;">No items added yet. Use the buttons above to build your order!</li>';
-                payBtns.forEach(btn => btn.disabled = true);
+                list.innerHTML = '<li style="color: #777;">Your cart is empty</li>';
+                submitBtn.disabled = true;
                 freeChipsBox.style.display = 'none';
-                tipSection.style.display = 'none';
                 claimCheckbox.checked = false;
                 totalDisplay.innerText = '0.00';
                 return;
             }
 
-            tipSection.style.display = 'block';
-
             let discount = 0;
 
-            // Deal 1: Drink + Snack Combo ($0.25 off)
+            // Deal 1: Drink + Snack Combo Deal ($0.25 Off)
             if (totalDrinks >= 1 && totalSnacks >= 1) {
                 discount += 0.25;
-                list.innerHTML += `<li class="deal-line"><span>🍿 Drink + Snack Combo Deal</span> <span>-$0.25</span></li>`;
+                list.innerHTML += `<li class="deal-line"><span>🍿 Drink + Snack Combo</span> <span>-$0.25</span></li>`;
             }
 
             // Deal 2: Buy 3 Drinks, 4th Drink 50% Off
@@ -521,45 +396,39 @@
                 }
 
                 discount += groupDiscount;
-                list.innerHTML += `<li class="deal-line"><span>🥤 Group Chill Perk (4th Drink 50% off)</span> <span>-$${groupDiscount.toFixed(2)}</span></li>`;
+                list.innerHTML += `<li class="deal-line"><span>🥤 Buy 3, Get 4th 50% Off</span> <span>-$${groupDiscount.toFixed(2)}</span></li>`;
             }
 
             let subtotalAfterDiscount = Math.max(0, rawSubtotal - discount);
 
-            // Deal 3: Optional Free Chips for $5.00+ subtotal
+            // Deal 3: Optional Free Chips for Orders $5.00+
             if (subtotalAfterDiscount >= 5.00) {
                 freeChipsBox.style.display = 'block';
                 if (claimCheckbox.checked) {
-                    list.innerHTML += `<li class="deal-line"><span>🎁 Free Bag of Chips ($5+ Perk)</span> <span>FREE</span></li>`;
+                    list.innerHTML += `<li class="deal-line"><span>🎁 Free Bag of Chips ($5+)</span> <span>FREE</span></li>`;
                 }
             } else {
                 freeChipsBox.style.display = 'none';
                 claimCheckbox.checked = false;
             }
 
-            // Add Tip to Cart List Display
-            if (tipAmount > 0) {
-                list.innerHTML += `<li style="color: #ff6600; font-weight: bold;"><span>💛 Tip for Crew</span> <span>+$${tipAmount.toFixed(2)}</span></li>`;
-            }
-
-            let finalTotal = subtotalAfterDiscount + tipAmount;
-
-            totalDisplay.innerText = finalTotal.toFixed(2);
-            payBtns.forEach(btn => btn.disabled = false);
+            totalDisplay.innerText = subtotalAfterDiscount.toFixed(2);
+            submitBtn.disabled = false;
         }
 
-        async function placeOrder(paymentMethod) {
+        async function submitCustomerOrder() {
             const name = document.getElementById('cust-name').value.trim();
             const address = document.getElementById('cust-address').value.trim();
+            const btn = document.getElementById('place-order-btn');
             const claimChips = document.getElementById('claim-chips-checkbox').checked;
-            const payBtns = document.querySelectorAll('.pay-btn');
 
             if (!name || !address) {
-                alert("Please enter both your Name and Delivery Address!");
+                alert("Please enter your Name and Delivery/House Address.");
                 return;
             }
 
-            payBtns.forEach(btn => btn.disabled = true);
+            btn.disabled = true;
+            btn.innerText = "Submitting Order...";
 
             let orderItems = [];
             for (let item in cart) {
@@ -568,58 +437,52 @@
                 }
             }
 
-            if (claimChips) orderItems.push("🎁 Claimed FREE Chips");
-            if (tipAmount > 0) orderItems.push(`💛 Tip ($${tipAmount.toFixed(2)})`);
+            if (claimChips) {
+                orderItems.push("🎁 FREE Chips");
+            }
 
-            let finalTotal = parseFloat(document.getElementById('total-due').innerText);
+            let finalTotal = parseFloat(document.getElementById('customer-total-due').innerText);
 
             const notionData = {
                 parent: { database_id: ORDERS_DB_ID },
                 properties: {
                     "Name": { title: [{ text: { content: name } }] },
                     "Address": { rich_text: [{ text: { content: address } }] },
-                    "Items": { rich_text: [{ text: { content: `${orderItems.join(', ')} [Paid via ${paymentMethod}]` } }] },
+                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
                     "Total Due": { number: finalTotal },
-                    "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
+                    "Status": { rich_text: [{ text: { content: "Pending ⏳" } }] }
                 }
             };
 
             try {
-                let response = await fetch(NOTION_POST_URL, {
+                let response = await fetch(PROXY_POST, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
                     body: JSON.stringify(notionData)
                 });
 
                 if (response.ok) {
-                    alert(`🎉 Order placed! Opening ${paymentMethod}...`);
-
-                    if (paymentMethod === 'Cash App') {
-                        window.location.href = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
-                    } else if (paymentMethod === 'Venmo') {
-                        window.location.href = `https://venmo.com/${VENMO_TAG}?txn=pay&amount=${finalTotal.toFixed(2)}&note=SummerStandsOrder`;
-                    }
+                    alert("🎉 Your order has been placed successfully!");
                     
                     for (let item in cart) { cart[item] = 0; }
-                    tipAmount = 0.00;
                     document.getElementById('cust-name').value = '';
                     document.getElementById('cust-address').value = '';
                     document.getElementById('claim-chips-checkbox').checked = false;
                     
-                    renderMenu();
-                    updateCartUI();
+                    renderCustomerMenu();
+                    updateCustomerCartUI();
                 } else {
-                    alert("⚠️ Couldn't place order. Please try again.");
+                    alert("⚠️ Error placing order. Please try again.");
                 }
             } catch (err) {
                 alert("⚠️ Connection error.");
             }
 
-            payBtns.forEach(btn => btn.disabled = false);
+            btn.innerText = "🚀 Submit Order";
         }
 
         window.onload = function() {
-            renderMenu();
+            renderCustomerMenu();
             fetchLiveStock();
         };
     </script>
