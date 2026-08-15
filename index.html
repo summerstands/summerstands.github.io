@@ -9,6 +9,8 @@
             --primary: #ffcc00;
             --secondary: #ff6600;
             --cashapp: #00D632;
+            --venmo: #008CFF;
+            --zelle: #7414CA;
             --dark: #333;
         }
         body {
@@ -212,10 +214,22 @@
         }
         .total-box h2 { margin: 0; color: var(--secondary); font-size: 2rem; }
 
+        /* Payment Buttons Grid */
+        .payment-title {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            color: #555;
+        }
+        .payment-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
         .submit-btn {
-            background-color: var(--cashapp);
             color: white;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             border: none;
             border-radius: 8px;
@@ -224,10 +238,13 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        .submit-btn:hover {
-            background-color: #00b82b;
-        }
-        .submit-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn-cashapp { background-color: var(--cashapp); }
+        .btn-cashapp:hover { background-color: #00b82b; }
+        .btn-venmo { background-color: var(--venmo); }
+        .btn-venmo:hover { background-color: #0077e6; }
+        .btn-zelle { background-color: var(--zelle); }
+        .btn-zelle:hover { background-color: #600fb0; }
+        .submit-btn:disabled { background-color: #ccc !important; cursor: not-allowed; }
 
         footer {
             text-align: center;
@@ -300,9 +317,18 @@
                 <h2>$<span id="total-due">0.00</span></h2>
             </div>
 
-            <button type="button" id="place-order-btn" class="submit-btn" onclick="placeOrder()" disabled>
-                💚 Place Order & Pay on Cash App
-            </button>
+            <div class="payment-title">SELECT PAYMENT METHOD TO PLACE ORDER:</div>
+            <div class="payment-btns">
+                <button type="button" class="submit-btn btn-cashapp pay-btn" onclick="placeOrder('Cash App')" disabled>
+                    💚 Pay with Cash App ($OJuice17)
+                </button>
+                <button type="button" class="submit-btn btn-venmo pay-btn" onclick="placeOrder('Venmo')" disabled>
+                    💙 Pay with Venmo (@OJuice17)
+                </button>
+                <button type="button" class="submit-btn btn-zelle pay-btn" onclick="placeOrder('Zelle')" disabled>
+                    💜 Pay with Zelle
+                </button>
+            </div>
         </div>
     </div>
 
@@ -313,11 +339,13 @@
 
     <script>
         const CASH_APP_TAG = "OJuice17";
+        const VENMO_TAG = "OJuice17";
+        const ZELLE_INFO = "708-XXX-XXXX"; // Replace with your Zelle phone/email
+
         const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
         const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
         const INVENTORY_DB_ID = "3aa1a8b08730800496e5ffc6fec7aead";
 
-        // Proxied endpoints to fix CORS errors in browser/editors
         const NOTION_POST_URL = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
         const NOTION_QUERY_URL = "https://corsproxy.io/?" + encodeURIComponent(`https://api.notion.com/v1/databases/${INVENTORY_DB_ID}/query`);
 
@@ -325,8 +353,7 @@
             "Normal Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Pink Lemonade": { price: 1.00, isDrink: true, outOfStock: false },
             "Oreo Milk Shake": { price: 2.00, isDrink: true, outOfStock: false },
-            "Rose Milk": { price: 2.00, isDrink: true, outOfStock: false },
-            "Popsicles": { price: 1.00, isDrink: false, stock: 0 },
+            "Popsicles": { price: 1.50, isDrink: false, stock: 15 },
             "Ice Cream": { price: 2.00, isDrink: false, stock: 18 },
             "Chips": { price: 1.25, isDrink: false, stock: 10 },
             "Zbar": { price: 1.00, isDrink: false, stock: 18 }
@@ -334,7 +361,7 @@
 
         let cart = {
             "Normal Lemonade": 0, "Pink Lemonade": 0, "Oreo Milk Shake": 0,
-            "Rose Milk": 0, "Popsicles": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
+            "Popsicles": 0, "Ice Cream": 0, "Chips": 0, "Zbar": 0
         };
 
         let tipAmount = 0.00;
@@ -437,7 +464,7 @@
         function updateCartUI() {
             const list = document.getElementById('cart-list');
             const totalDisplay = document.getElementById('total-due');
-            const orderBtn = document.getElementById('place-order-btn');
+            const payBtns = document.querySelectorAll('.pay-btn');
             const freeChipsBox = document.getElementById('free-chips-box');
             const claimCheckbox = document.getElementById('claim-chips-checkbox');
             const tipSection = document.getElementById('tip-section');
@@ -466,7 +493,7 @@
 
             if (!hasItems) {
                 list.innerHTML = '<li style="color: #777; text-align: center; display: block;">No items added yet. Use the buttons above to build your order!</li>';
-                orderBtn.disabled = true;
+                payBtns.forEach(btn => btn.disabled = true);
                 freeChipsBox.style.display = 'none';
                 tipSection.style.display = 'none';
                 claimCheckbox.checked = false;
@@ -525,22 +552,21 @@
             let finalTotal = subtotalAfterDiscount + tipAmount;
 
             totalDisplay.innerText = finalTotal.toFixed(2);
-            orderBtn.disabled = false;
+            payBtns.forEach(btn => btn.disabled = false);
         }
 
-        async function placeOrder() {
+        async function placeOrder(paymentMethod) {
             const name = document.getElementById('cust-name').value.trim();
             const address = document.getElementById('cust-address').value.trim();
             const claimChips = document.getElementById('claim-chips-checkbox').checked;
-            const btn = document.getElementById('place-order-btn');
+            const payBtns = document.querySelectorAll('.pay-btn');
 
             if (!name || !address) {
                 alert("Please enter both your Name and Delivery Address!");
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerText = "Placing Order & Opening Cash App...";
+            payBtns.forEach(btn => btn.disabled = true);
 
             let orderItems = [];
             for (let item in cart) {
@@ -549,13 +575,8 @@
                 }
             }
 
-            if (claimChips) {
-                orderItems.push("🎁 Claimed FREE Chips");
-            }
-
-            if (tipAmount > 0) {
-                orderItems.push(`💛 Tip ($${tipAmount.toFixed(2)})`);
-            }
+            if (claimChips) orderItems.push("🎁 Claimed FREE Chips");
+            if (tipAmount > 0) orderItems.push(`💛 Tip ($${tipAmount.toFixed(2)})`);
 
             let finalTotal = parseFloat(document.getElementById('total-due').innerText);
 
@@ -564,7 +585,7 @@
                 properties: {
                     "Name": { title: [{ text: { content: name } }] },
                     "Address": { rich_text: [{ text: { content: address } }] },
-                    "Items": { rich_text: [{ text: { content: orderItems.join(', ') } }] },
+                    "Items": { rich_text: [{ text: { content: `${orderItems.join(', ')} [Paid via ${paymentMethod}]` } }] },
                     "Total Due": { number: finalTotal },
                     "Status": { rich_text: [{ text: { content: "Pending Delivery 🚚" } }] }
                 }
@@ -578,10 +599,16 @@
                 });
 
                 if (response.ok) {
-                    const cashAppUrl = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
-                    window.open(cashAppUrl, '_blank');
+                    // Open payment app depending on selection
+                    if (paymentMethod === 'Cash App') {
+                        window.open(`https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`, '_blank');
+                    } else if (paymentMethod === 'Venmo') {
+                        window.open(`https://venmo.com/${VENMO_TAG}?txn=pay&amount=${finalTotal.toFixed(2)}&note=SummerStandsOrder`, '_blank');
+                    } else if (paymentMethod === 'Zelle') {
+                        alert(`🎉 Order placed! Please send $${finalTotal.toFixed(2)} via Zelle to: ${ZELLE_INFO}`);
+                    }
 
-                    alert(`🎉 Order placed! Opening Cash App for $${finalTotal.toFixed(2)} to $${CASH_APP_TAG}.`);
+                    alert(`🎉 Order recorded! Thanks for ordering with Summer Stands.`);
                     
                     for (let item in cart) { cart[item] = 0; }
                     tipAmount = 0.00;
@@ -592,13 +619,13 @@
                     renderMenu();
                     updateCartUI();
                 } else {
-                    alert("⚠️ Couldn't place order. Please check connection.");
+                    alert("⚠️ Couldn't place order. Please try again.");
                 }
             } catch (err) {
                 alert("⚠️ Connection error.");
             }
 
-            btn.innerText = "💚 Place Order & Pay on Cash App";
+            payBtns.forEach(btn => btn.disabled = false);
         }
 
         window.onload = function() {
