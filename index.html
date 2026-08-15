@@ -10,7 +10,6 @@
             --secondary: #ff6600;
             --cashapp: #00D632;
             --venmo: #008CFF;
-            --zelle: #7414CA;
             --dark: #333;
         }
         body {
@@ -242,8 +241,6 @@
         .btn-cashapp:hover { background-color: #00b82b; }
         .btn-venmo { background-color: var(--venmo); }
         .btn-venmo:hover { background-color: #0077e6; }
-        .btn-zelle { background-color: var(--zelle); }
-        .btn-zelle:hover { background-color: #600fb0; }
         .submit-btn:disabled { background-color: #ccc !important; cursor: not-allowed; }
 
         footer {
@@ -325,9 +322,6 @@
                 <button type="button" class="submit-btn btn-venmo pay-btn" onclick="placeOrder('Venmo')" disabled>
                     💙 Pay with Venmo (@Ravin-Mangtani)
                 </button>
-                <button type="button" class="submit-btn btn-zelle pay-btn" onclick="placeOrder('Zelle')" disabled>
-                    💜 Pay with Zelle
-                </button>
             </div>
         </div>
     </div>
@@ -340,7 +334,6 @@
     <script>
         const CASH_APP_TAG = "OJuice17";
         const VENMO_TAG = "Ravin-Mangtani";
-        const ZELLE_INFO = "YOUR_ZELLE_EMAIL_OR_PHONE"; // Replace this with your Zelle info
 
         const NOTION_TOKEN = "ntn_s71251085287iZqsNX2Jvo10YZuea3w9O9PnFDUGR7k0J6";
         const ORDERS_DB_ID = "3a11a8b0873080c8b274fb20867d2b85";
@@ -599,15 +592,13 @@
                 });
 
                 if (response.ok) {
-                    if (paymentMethod === 'Cash App') {
-                        window.open(`https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`, '_blank');
-                    } else if (paymentMethod === 'Venmo') {
-                        window.open(`https://venmo.com/${VENMO_TAG}?txn=pay&amount=${finalTotal.toFixed(2)}&note=SummerStandsOrder`, '_blank');
-                    } else if (paymentMethod === 'Zelle') {
-                        alert(`🎉 Order placed! Please send $${finalTotal.toFixed(2)} via Zelle to: ${ZELLE_INFO}`);
-                    }
+                    alert(`🎉 Order placed! Opening ${paymentMethod}...`);
 
-                    alert(`🎉 Order recorded! Thanks for ordering with Summer Stands.`);
+                    if (paymentMethod === 'Cash App') {
+                        window.location.href = `https://cash.app/$${CASH_APP_TAG}/${finalTotal.toFixed(2)}`;
+                    } else if (paymentMethod === 'Venmo') {
+                        window.location.href = `https://venmo.com/${VENMO_TAG}?txn=pay&amount=${finalTotal.toFixed(2)}&note=SummerStandsOrder`;
+                    }
                     
                     for (let item in cart) { cart[item] = 0; }
                     tipAmount = 0.00;
